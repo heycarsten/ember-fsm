@@ -2,12 +2,13 @@ define(
   ["ember","ember/rsvp","./utils","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var Ember = __dependency1__.default;
+    var Ember = __dependency1__["default"] || __dependency1__;
+    var RSVP = __dependency2__["default"] || __dependency2__;
     var computed = __dependency1__.computed;
     var inspect = __dependency1__.inspect;
-    var Promise = __dependency2__["default"] || __dependency2__;
-    var hash = __dependency2__["default"] || __dependency2__;
+    var Promise = __dependency2__.Promise;
     var withPromise = __dependency3__.withPromise;
+    var toArray = __dependency3__.toArray;
 
     var CALLBACKS = [
       ['beforeEvent',    'event'],
@@ -155,7 +156,7 @@ define(
           args.push(transition);
         });
 
-        promise = rsvpHash(promises);
+        promise = RSVP.hash(promises);
 
         promise.then(function(results) {
           delete results._setNewState_;

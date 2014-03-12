@@ -1,10 +1,11 @@
 "use strict";
-var Ember = require("ember").default;
+var Ember = require("ember")["default"] || require("ember");
+var RSVP = require("ember/rsvp")["default"] || require("ember/rsvp");
 var computed = require("ember").computed;
 var inspect = require("ember").inspect;
-var Promise = require("ember/rsvp")["default"] || require("ember/rsvp");
-var hash = require("ember/rsvp")["default"] || require("ember/rsvp");
+var Promise = require("ember/rsvp").Promise;
 var withPromise = require("./utils").withPromise;
+var toArray = require("./utils").toArray;
 
 var CALLBACKS = [
   ['beforeEvent',    'event'],
@@ -152,7 +153,7 @@ exports["default"] = Ember.Object.extend({
       args.push(transition);
     });
 
-    promise = rsvpHash(promises);
+    promise = RSVP.hash(promises);
 
     promise.then(function(results) {
       delete results._setNewState_;

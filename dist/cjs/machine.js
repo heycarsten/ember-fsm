@@ -1,5 +1,5 @@
 "use strict";
-var Ember = require("ember").default;
+var Ember = require("ember")["default"] || require("ember");
 var required = require("ember").required;
 var computed = require("ember").computed;
 var typeOf = require("ember").typeOf;
@@ -261,8 +261,8 @@ exports["default"] = Ember.Object.extend({
 
     if (typeOf(payload) === 'array') {
       payload.forEach(function(params) {
-        defs.push(this._normalizeTransitionDefinition(fsm, params));
-      });
+        defs.push(this._normalizeTransitionDefinition(params));
+      }, this);
     } else if (typeOf(payload) === 'object') {
       for (fromState in payload) {
         toState = payload[fromState];

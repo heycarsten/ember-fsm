@@ -5,7 +5,7 @@ define(
     var Mixin = __dependency1__.Mixin;
     var required = __dependency1__.required;
     var computed = __dependency1__.computed;
-    var Machine = __dependency2__.Machine;
+    var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
       initialState: undefined,

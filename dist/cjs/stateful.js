@@ -1,7 +1,10 @@
-import { Mixin, required, computed } from 'ember';
-import { Machine } from './machine';
+"use strict";
+var Mixin = require("ember").Mixin;
+var required = require("ember").required;
+var computed = require("ember").computed;
+var Machine = require("./machine")["default"] || require("./machine");
 
-export default Mixin.create({
+exports["default"] = Mixin.create({
   initialState: undefined,
   stateEvents:  required(),
   isLoading:    computed.oneWay('fsm.isTransitioning'),

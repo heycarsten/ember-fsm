@@ -1,8 +1,8 @@
-define("ember-fsm/ember/fsm/machine",
+define("ember-fsm/machine",
   ["ember","./utils","./transition","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var Ember = __dependency1__.default;
+    var Ember = __dependency1__["default"] || __dependency1__;
     var required = __dependency1__.required;
     var computed = __dependency1__.computed;
     var typeOf = __dependency1__.typeOf;
@@ -264,8 +264,8 @@ define("ember-fsm/ember/fsm/machine",
 
         if (typeOf(payload) === 'array') {
           payload.forEach(function(params) {
-            defs.push(this._normalizeTransitionDefinition(fsm, params));
-          });
+            defs.push(this._normalizeTransitionDefinition(params));
+          }, this);
         } else if (typeOf(payload) === 'object') {
           for (fromState in payload) {
             toState = payload[fromState];
@@ -352,14 +352,44 @@ define("ember-fsm/ember/fsm/machine",
         this.reopen(mixin);
       }
     });
-  });define("ember-fsm/ember/fsm/stateful",
+  });define("ember-fsm",
+  ["./machine","./transition","./stateful","./reject","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
+    "use strict";
+    /*!
+    ember-fsm
+    (c) 2014 Carsten Nielsen
+    - License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+    */
+
+    var Machine = __dependency1__["default"] || __dependency1__;
+    var Transition = __dependency2__["default"] || __dependency2__;
+    var Stateful = __dependency3__["default"] || __dependency3__;
+    var reject = __dependency4__["default"] || __dependency4__;
+
+    __exports__.Machine = Machine;
+    __exports__.Transition = Transition;
+    __exports__.Stateful = Stateful;
+    __exports__.reject = reject;
+  });define("ember-fsm/reject",
+  ["ember","exports"],
+  function(__dependency1__, __exports__) {
+    "use strict";
+    var Ember = __dependency1__["default"] || __dependency1__;
+
+    function reject() {
+      throw new Ember.Error('rejected transition');
+    }
+
+    __exports__.reject = reject;
+  });define("ember-fsm/stateful",
   ["ember","./machine","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var Mixin = __dependency1__.Mixin;
     var required = __dependency1__.required;
     var computed = __dependency1__.computed;
-    var Machine = __dependency2__.Machine;
+    var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
       initialState: undefined,
@@ -395,16 +425,17 @@ define("ember-fsm/ember/fsm/machine",
         return fsm.send.apply(fsm, arguments);
       }
     });
-  });define("ember-fsm/ember/fsm/transition",
+  });define("ember-fsm/transition",
   ["ember","ember/rsvp","./utils","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var Ember = __dependency1__.default;
+    var Ember = __dependency1__["default"] || __dependency1__;
+    var RSVP = __dependency2__["default"] || __dependency2__;
     var computed = __dependency1__.computed;
     var inspect = __dependency1__.inspect;
-    var Promise = __dependency2__["default"] || __dependency2__;
-    var hash = __dependency2__["default"] || __dependency2__;
+    var Promise = __dependency2__.Promise;
     var withPromise = __dependency3__.withPromise;
+    var toArray = __dependency3__.toArray;
 
     var CALLBACKS = [
       ['beforeEvent',    'event'],
@@ -552,7 +583,7 @@ define("ember-fsm/ember/fsm/machine",
           args.push(transition);
         });
 
-        promise = rsvpHash(promises);
+        promise = RSVP.hash(promises);
 
         promise.then(function(results) {
           delete results._setNewState_;
@@ -580,7 +611,7 @@ define("ember-fsm/ember/fsm/machine",
         );
       }
     });
-  });define("ember-fsm/ember/fsm/utils",
+  });define("ember-fsm/utils",
   ["ember/string","ember/rsvp","ember","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
@@ -628,21 +659,4 @@ define("ember-fsm/ember/fsm/machine",
     }
 
     __exports__.toArray = toArray;
-  });define("ember-fsm",
-  ["./ember/fsm/machine","./ember/fsm/transition","./ember/fsm/stateful","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
-    "use strict";
-    /*!
-    ember-fsm
-    (c) 2014 Carsten Nielsen
-    - License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
-    */
-
-    var Machine = __dependency1__["default"] || __dependency1__;
-    var Transition = __dependency2__["default"] || __dependency2__;
-    var Stateful = __dependency3__["default"] || __dependency3__;
-
-    __exports__.Machine = Machine;
-    __exports__.Transition = Transition;
-    __exports__.Stateful = Stateful;
   });

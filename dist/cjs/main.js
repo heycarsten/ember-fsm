@@ -5,10 +5,12 @@ ember-fsm
 - License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
 */
 
-var Machine = require("./ember/fsm/machine")["default"] || require("./ember/fsm/machine");
-var Transition = require("./ember/fsm/transition")["default"] || require("./ember/fsm/transition");
-var Stateful = require("./ember/fsm/stateful")["default"] || require("./ember/fsm/stateful");
+var Machine = require("./machine")["default"] || require("./machine");
+var Transition = require("./transition")["default"] || require("./transition");
+var Stateful = require("./stateful")["default"] || require("./stateful");
+var reject = require("./reject")["default"] || require("./reject");
 
 exports.Machine = Machine;
 exports.Transition = Transition;
 exports.Stateful = Stateful;
+exports.reject = reject;

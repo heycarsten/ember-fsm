@@ -2,7 +2,7 @@ define(
   ["ember","./utils","./transition","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var Ember = __dependency1__.default;
+    var Ember = __dependency1__["default"] || __dependency1__;
     var required = __dependency1__.required;
     var computed = __dependency1__.computed;
     var typeOf = __dependency1__.typeOf;
@@ -264,8 +264,8 @@ define(
 
         if (typeOf(payload) === 'array') {
           payload.forEach(function(params) {
-            defs.push(this._normalizeTransitionDefinition(fsm, params));
-          });
+            defs.push(this._normalizeTransitionDefinition(params));
+          }, this);
         } else if (typeOf(payload) === 'object') {
           for (fromState in payload) {
             toState = payload[fromState];

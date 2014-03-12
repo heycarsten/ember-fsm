@@ -1,6 +1,6 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.Ember||(f.Ember={})).FSM=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 "use strict";
-var Ember = window.Ember.default;
+var Ember = window.Ember["default"] || window.Ember;
 var required = window.Ember.required;
 var computed = window.Ember.computed;
 var typeOf = window.Ember.typeOf;
@@ -262,8 +262,8 @@ exports["default"] = Ember.Object.extend({
 
     if (typeOf(payload) === 'array') {
       payload.forEach(function(params) {
-        defs.push(this._normalizeTransitionDefinition(fsm, params));
-      });
+        defs.push(this._normalizeTransitionDefinition(params));
+      }, this);
     } else if (typeOf(payload) === 'object') {
       for (fromState in payload) {
         toState = payload[fromState];
@@ -350,12 +350,38 @@ exports["default"] = Ember.Object.extend({
     this.reopen(mixin);
   }
 });
-},{"./transition":3,"./utils":4}],2:[function(_dereq_,module,exports){
+},{"./transition":5,"./utils":6}],2:[function(_dereq_,module,exports){
+"use strict";
+/*!
+ember-fsm
+(c) 2014 Carsten Nielsen
+- License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+*/
+
+var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
+var Transition = _dereq_("./transition")["default"] || _dereq_("./transition");
+var Stateful = _dereq_("./stateful")["default"] || _dereq_("./stateful");
+var reject = _dereq_("./reject")["default"] || _dereq_("./reject");
+
+exports.Machine = Machine;
+exports.Transition = Transition;
+exports.Stateful = Stateful;
+exports.reject = reject;
+},{"./machine":1,"./reject":3,"./stateful":4,"./transition":5}],3:[function(_dereq_,module,exports){
+"use strict";
+var Ember = window.Ember["default"] || window.Ember;
+
+function reject() {
+  throw new Ember.Error('rejected transition');
+}
+
+exports.reject = reject;
+},{}],4:[function(_dereq_,module,exports){
 "use strict";
 var Mixin = window.Ember.Mixin;
 var required = window.Ember.required;
 var computed = window.Ember.computed;
-var Machine = _dereq_("./machine").Machine;
+var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
 
 exports["default"] = Mixin.create({
   initialState: undefined,
@@ -391,14 +417,15 @@ exports["default"] = Mixin.create({
     return fsm.send.apply(fsm, arguments);
   }
 });
-},{"./machine":1}],3:[function(_dereq_,module,exports){
+},{"./machine":1}],5:[function(_dereq_,module,exports){
 "use strict";
-var Ember = window.Ember.default;
+var Ember = window.Ember["default"] || window.Ember;
+var RSVP = window.Ember.RSVP["default"] || window.Ember.RSVP;
 var computed = window.Ember.computed;
 var inspect = window.Ember.inspect;
-var Promise = window.Ember.RSVP["default"] || window.Ember.RSVP;
-var hash = window.Ember.RSVP["default"] || window.Ember.RSVP;
+var Promise = window.Ember.RSVP.Promise;
 var withPromise = _dereq_("./utils").withPromise;
+var toArray = _dereq_("./utils").toArray;
 
 var CALLBACKS = [
   ['beforeEvent',    'event'],
@@ -546,7 +573,7 @@ exports["default"] = Ember.Object.extend({
       args.push(transition);
     });
 
-    promise = rsvpHash(promises);
+    promise = RSVP.hash(promises);
 
     promise.then(function(results) {
       delete results._setNewState_;
@@ -574,7 +601,7 @@ exports["default"] = Ember.Object.extend({
     );
   }
 });
-},{"./utils":4}],4:[function(_dereq_,module,exports){
+},{"./utils":6}],6:[function(_dereq_,module,exports){
 "use strict";
 var capitalize = window.Ember.String.capitalize;
 var camelize = window.Ember.String.camelize;
@@ -620,21 +647,6 @@ exports.capitalCamelize = capitalCamelize;function toArray(thing) {
 }
 
 exports.toArray = toArray;
-},{}],5:[function(_dereq_,module,exports){
-"use strict";
-/*!
-ember-fsm
-(c) 2014 Carsten Nielsen
-- License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
-*/
-
-var Machine = _dereq_("./ember/fsm/machine")["default"] || _dereq_("./ember/fsm/machine");
-var Transition = _dereq_("./ember/fsm/transition")["default"] || _dereq_("./ember/fsm/transition");
-var Stateful = _dereq_("./ember/fsm/stateful")["default"] || _dereq_("./ember/fsm/stateful");
-
-exports.Machine = Machine;
-exports.Transition = Transition;
-exports.Stateful = Stateful;
-},{"./ember/fsm/machine":1,"./ember/fsm/stateful":2,"./ember/fsm/transition":3}]},{},[5])
-(5)
+},{}]},{},[2])
+(2)
 });

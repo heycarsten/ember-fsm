@@ -9,7 +9,7 @@ Callbacks are defined on the 'target', by default the target is the state
 machine itself. This can be changed manually, or by using the Stateful mixin.
 
 ```js
-fsm = FSM.create({
+fsm = Ember.FSM.Machine.create({
   initialState: 'awake',
 
   stateEvents: {
@@ -19,7 +19,7 @@ fsm = FSM.create({
   }
 });
 
-fsm.send('sleep', *eventArgs); => Promise
+fsm.send('sleep', *eventArgs); => RSVP.Promise
 ```
 
 Here's what the callback cycle looks like:
@@ -40,7 +40,7 @@ You are not limited to the built in callbacks, you can freely provide your own
 callbacks in your state machine definition:
 
 ```js
-fsm = FSM.create({
+fsm = Ember.FSM.Machine.create({
   stateEvents: {
     sleep: {
       transitions: { from: 'awake', to: 'sleeping', action: 'startedSleeping' }
@@ -102,4 +102,95 @@ isProcessing
 isProcessingEnqueuiing
 isProcessingWorking
 isFinished
+```
+
+## Ember.FSM.Stateful
+
+Often you'll want to define a state machine on an object, this can be done using
+the `Ember.FSM.Stateful` mixin. Here's an example of a typical use for a state
+machine on an Ember object:
+
+```js
+App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
+  needs: 'notifier',
+  initialState: 'nofile',
+
+  actions: {
+    uploadFile: function(file) {
+      this.set('file', file);
+      this.sendStateEvent('addFile');
+    }
+  },
+
+  stateEvents: {
+    addFile: {
+      transitions: {
+        before: 'checkFile',
+        from: ['nofile', 'failed'], to: 'ready'
+      }
+    },
+
+    startUpload: {
+      transitions: {
+        before: 'getUploadURL',
+        from: 'ready', to: 'uploading',
+        action: 'performUpload',
+        after: 'finishedUpload'
+      }
+    },
+
+    finishUpload: {
+      transitions: {
+        from: 'uploading', to: 'nofile',
+        action: 'reset'
+      }
+    }
+  },
+
+  reset: function() {
+    this.set('file', null);
+  },
+
+  checkFile: function() {
+    var file = this.get('file');
+
+    if (file.size > 0) {
+      return;
+    } else {
+      this.get('controllers.notifier').warn('file must have content');
+      Em.FSM.reject(); // Just a helper for throwing an error.
+    }
+  },
+
+  getUploadURL: function() {
+    var controller = this;
+    var fileName = this.get('file.name');
+    var xhr;
+
+    xhr = $.ajax('/api/uploads/signed_urls', {
+      type: 'put',
+      data: { file: { name: fileName } }
+    });
+
+    xhr.then(function(payload) {
+      Em.run(function() {
+        controller.set('uploadToURL', payload.signed_url.url);
+      });
+    });
+
+    return xhr; // Causes transition to block until promise is settled
+  },
+
+  performUpload: function() {
+    return $.ajax(this.get('uploadToURL'), {
+      type: 'put',
+      data: this.get('file'),
+    });
+  },
+
+  finishedUpload: function() {
+    this.get('controllers.notifier').success('Upload complete');
+    this.sendStateEvent('finished');
+  }
+});
 ```

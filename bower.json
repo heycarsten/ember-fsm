@@ -1,0 +1,26 @@
+{
+  "name": "ember-fsm",
+  "version": "0.1.0",
+  "license": "MIT",
+
+  "authors": [
+    "Carsten Nielsen <heycarsten@gmail.com>"
+  ],
+
+  "ignore": [
+    "bower_components",
+    "node_modules",
+    "package.json",
+    "testem.json",
+    "test.js",
+    "**/.*"
+  ],
+
+  "dependencies": {
+    "ember": ">=1.2 <2"
+  },
+
+  "devDependencies": {
+    "sinon": "http://sinonjs.org/releases/sinon-1.7.3.js"
+  }
+}

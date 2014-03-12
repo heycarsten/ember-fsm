@@ -1,0 +1,12 @@
+{
+  "framework": "jasmine2",
+  "src_files": [
+    "bower_components/sinon/index.js",
+    "bower_components/jquery/jquery.js",
+    "bower_components/handlebars/handlebars.js",
+    "bower_components/ember/ember.js",
+    "dist/globals/main.js",
+    "http://localhost:4200/globals/main.js",
+    "test/**/*-spec.js"
+  ]
+}

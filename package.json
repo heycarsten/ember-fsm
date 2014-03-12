@@ -7,24 +7,13 @@
   "license": "MIT",
   "homepage": "https://github.com/heycarsten/ember-fsm",
   "devDependencies": {
+    "testem": "^0.6.9",
     "broccoli": "^0.3.0",
-    "broccoli-dist-es6-module": "^0.1.8",
-    "karma": "^0.12.0",
-    "karma-mocha": "^0.1.1",
-    "karma-chrome-launcher": "^0.1.2",
-    "karma-firefox-launcher": "^0.1.3",
-    "karma-html2js-preprocessor": "^0.1.0",
-    "karma-script-launcher": "^0.1.0",
-    "mocha": "^1.17.1",
-    "bower": "^1.2.8",
-    "chai": "^1.9.0",
-    "karma-chai": "^0.1.0",
-    "sinon": "^1.9.0",
-    "karma-sinon": "^1.0.2"
+    "broccoli-dist-es6-module": "^0.1.8"
   },
   "dependencies": {},
   "scripts": {
-    "test": "node_modules/bower/bin/bower install && node_modules/karma/bin/karma start --browsers Chrome"
+    "test": "./node_modules/.bin/testem ci"
   },
   "repository": {
     "type": "git",
@@ -33,8 +22,11 @@
   "keywords": [
     "ember",
     "fsm",
+    "finite",
     "state",
-    "machine"
+    "machine",
+    "asyncronous",
+    "promise"
   ],
   "bugs": {
     "url": "https://github.com/heycarsten/ember-fsm/issues"

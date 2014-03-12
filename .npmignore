@@ -3,4 +3,4 @@ bower.json
 test
 lib
 Brocfile.js
-karma.conf.js
+testem.json

@@ -13,7 +13,7 @@ describe('FSM.Machine', function() {
           didEnter: 'didEnterCallback',
           after: 'afterCallback'
         }] }
-      }
+      };
     }
     return Machine.create({ stateEvents: stateEvents });
   }

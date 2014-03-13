@@ -1,5 +1,10 @@
 {
   "predef": [
+    "Em",
+    "Ember",
+    "describe",
+    "it",
+    "beforeEach",
     "console",
     "require",
     "equal",
@@ -8,9 +13,6 @@
     "testWithDefault",
     "raises",
     "deepEqual",
-    "start",
-    "stop",
-    "ok",
     "strictEqual",
     "module",
     "expect"

@@ -1,5 +1,4 @@
 "use strict";
-var Ember = require("ember")["default"] || require("ember");
 var capitalize = require("ember/string").capitalize;
 var camelize = require("ember/string").camelize;
 var Promise = require("ember/rsvp").Promise;
@@ -47,7 +46,54 @@ exports.withPromise = withPromise;function capitalCamelize(str) {
 }
 
 exports.capitalCamelize = capitalCamelize;function toArray(thing) {
+  if (thing === undefined) {
+    return [];
+  }
+
   return typeOf(thing) === 'array' ? thing : [thing];
 }
 
-exports.toArray = toArray;
+exports.toArray = toArray;function propertiesOf(object) {
+  var properties = [];
+  var property;
+
+  if (!isObject(object)) {
+    throw new TypeError('can\'t determine properties of: ' + object);
+  }
+
+  for (property in object) {
+    if (object.hasOwnProperty(property) && object[property] !== undefined) {
+      properties.push(property);
+    }
+  }
+
+  return properties;
+}
+
+exports.propertiesOf = propertiesOf;function isObject(obj) {
+  var type = typeOf(obj);
+  return type === 'class' || type === 'instance' || type === 'object';
+}
+
+exports.isObject = isObject;function getFirst(obj, properties) {
+  var value;
+  var i;
+
+  properties = toArray(properties);
+
+  if (!isObject(obj)) {
+    return value;
+  }
+
+  for (i = 0; i < properties.length; i++) {
+    value = obj[properties[i]];
+
+    if (value !== undefined) {
+      break;
+    }
+  }
+
+  return value;
+}
+
+exports.getFirst = getFirst;

@@ -127,7 +127,7 @@ describe('utils.withPromise', function() {
 
     beforeEach(function(done) {
       result = withPromise(function() {
-        throw yieldedException = new Error();
+        throw (yieldedException = new Error());
       });
 
       result.catch(function(error) {
@@ -139,5 +139,55 @@ describe('utils.withPromise', function() {
     it('returns a promise that rejects with the exception', function() {
       expect(rejection).toBe(yieldedException);
     });
+  });
+});
+
+describe('utils.ownPropertiesOf', function() {
+  var ownPropertiesOf = utils.ownPropertiesOf;
+
+  it('returns an array of properties belonging to object', function() {
+    var ary = ownPropertiesOf({ one: 1, two: 2, three: 3 });
+    expect(ary.length).toBe(3);
+    expect(ary).toContain('one', 'two', 'three');
+  });
+
+  it('doesn\'t return properties belonging to prototype', function() {
+    var obj = Em.Object.extend({ yo: 'hi' }).create({ cool: true });
+    var ary = ownPropertiesOf(obj);
+
+    expect(ary.length).toBe(1);
+    expect(ary).toContain('cool');
+  });
+
+  it('doesn\'t work on arrays', function() {
+    expect(function() {
+      ownPropertiesOf(['oops', 'i', 'fail']);
+    }).toThrowError(TypeError);
+  });
+});
+
+describe('utils.isObject', function() {
+  var isObject = utils.isObject;
+
+  it('returns true for objects', function() {
+    expect(isObject(Em.Object.create())).toBe(true);
+    expect(isObject({})).toBe(true);
+    expect(isObject(Em.Object.extend())).toBe(true);
+  });
+
+  it('returns false for non-objects', function() {
+    expect(isObject(null)).toBe(false);
+    expect(isObject([])).toBe(false);
+    expect(isObject(undefined)).toBe(false);
+  });
+});
+
+describe('utils.getFirst', function() {
+  var getFirst = utils.getFirst;
+
+  it('returns the first property of object that isn\'t undefined', function() {
+    var obj = { one: 1, two: 2 };
+    var val = getFirst(obj, 'two');
+    expect(val).toBe(2);
   });
 });

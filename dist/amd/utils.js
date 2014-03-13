@@ -1,13 +1,12 @@
 define(
-  ["ember","ember/string","ember/rsvp","exports"],
+  ["ember/string","ember/rsvp","ember","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var Ember = __dependency1__["default"] || __dependency1__;
-    var capitalize = __dependency2__.capitalize;
-    var camelize = __dependency2__.camelize;
-    var Promise = __dependency3__.Promise;
-    var typeOf = __dependency1__.typeOf;
-    var get = __dependency1__.get;
+    var capitalize = __dependency1__.capitalize;
+    var camelize = __dependency1__.camelize;
+    var Promise = __dependency2__.Promise;
+    var typeOf = __dependency3__.typeOf;
+    var get = __dependency3__.get;
 
     function isThenable(thing) {
       var thingType = typeOf(thing);
@@ -50,8 +49,55 @@ define(
     }
 
     __exports__.capitalCamelize = capitalCamelize;function toArray(thing) {
+      if (thing === undefined) {
+        return [];
+      }
+
       return typeOf(thing) === 'array' ? thing : [thing];
     }
 
-    __exports__.toArray = toArray;
+    __exports__.toArray = toArray;function propertiesOf(object) {
+      var properties = [];
+      var property;
+
+      if (!isObject(object)) {
+        throw new TypeError('can\'t determine properties of: ' + object);
+      }
+
+      for (property in object) {
+        if (object.hasOwnProperty(property) && object[property] !== undefined) {
+          properties.push(property);
+        }
+      }
+
+      return properties;
+    }
+
+    __exports__.propertiesOf = propertiesOf;function isObject(obj) {
+      var type = typeOf(obj);
+      return type === 'class' || type === 'instance' || type === 'object';
+    }
+
+    __exports__.isObject = isObject;function getFirst(obj, properties) {
+      var value;
+      var i;
+
+      properties = toArray(properties);
+
+      if (!isObject(obj)) {
+        return value;
+      }
+
+      for (i = 0; i < properties.length; i++) {
+        value = obj[properties[i]];
+
+        if (value !== undefined) {
+          break;
+        }
+      }
+
+      return value;
+    }
+
+    __exports__.getFirst = getFirst;
   });

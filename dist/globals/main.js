@@ -1,5 +1,348 @@
 !function(e){if("object"==typeof exports)module.exports=e();else if("function"==typeof define&&define.amd)define(e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),(f.Ember||(f.Ember={})).FSM=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 "use strict";
+var propertiesOf = _dereq_("./utils").propertiesOf;
+var getFirst = _dereq_("./utils").getFirst;
+var toArray = _dereq_("./utils").toArray;
+
+exports["default"] = MachineDefinition;
+
+var ALL_MACRO      = '$all';
+var SAME_MACRO     = '$same';
+var INITIALIZED    = 'initialized';
+var TRANSITIONS    = ['transition', 'transitions'];
+var INITIAL_STATES = ['initialState'];
+var EXPLICITS      = ['explicitStates', 'knownStates'];
+var BEFORES        = ['before', 'beforeEvent'];
+var AFTERS         = ['after', 'afterEvent'];
+var WILL_ENTERS    = ['willEnter'];
+var DID_ENTERS     = ['didEnter'];
+var WILL_EXITS     = ['willExit'];
+var DID_EXITS      = ['didExit'];
+var DO_IFS         = ['doIf', 'runIf', 'guard'];
+var DO_UNLESSES    = ['doUnless', 'runUnless', 'unless'];
+var FROMS          = ['from', 'fromState', 'fromStates'];
+var TOS            = ['to', 'toState'];
+
+// normalized name, definition names, toArray
+var DEFMAP = {
+  transition: [
+    ['fromStates',  FROMS,       true],
+    ['toState',     TOS,         false],
+    ['beforeEvent', BEFORES,     true],
+    ['afterEvent',  AFTERS,      true],
+    ['willEnter',   WILL_ENTERS, true],
+    ['didEnter',    DID_ENTERS,  true],
+    ['willExit',    WILL_EXITS,  true],
+    ['didExit',     DID_EXITS,   true],
+    ['doIf',        DO_IFS,      false],
+    ['doUnless',    DO_UNLESSES, false]
+  ],
+
+  event: [
+    ['transitions', TRANSITIONS, true]
+  ],
+
+  states: [
+    ['initialState',   INITIAL_STATES, false],
+    ['explicitStates', EXPLICITS,      true]
+  ],
+
+  state: [
+    ['willEnter', WILL_ENTERS, true],
+    ['didEnter',  DID_ENTERS,  true],
+    ['willExit',  WILL_EXITS,  true],
+    ['didExit',   DID_EXITS,   true]
+  ]
+};
+
+// Extracts definition keys and leaves behind "data", for example consider the
+// "states" node below:
+//
+// payload = {
+//   states: {
+//     initialState: 'ready',
+//     knownStates: 'ready',
+//
+//     ready: {
+//       willEnter: 'notifySomeone'
+//     }
+//   }
+// };
+//
+// definition = destructDefinition(payload.states, 'states');
+// definition => { initialState: 'ready', explicitStates: ['ready'] }
+// payload    => { ready: { willEnter: 'notifySomeone' } }
+function destructDefinition(payload, type) {
+  var map = DEFMAP[type];
+  var def = {};
+  var property;
+  var aliases;
+  var makeArray;
+  var value;
+  var i;
+  var j;
+
+  if (!payload) {
+    throw new TypeError('Expected payload object');
+  }
+
+  if (!map) {
+    throw new TypeError('type is unknown: ' + type);
+  }
+
+  for (i = 0; i < map.length; i++) {
+    property  = map[i][0];
+    aliases   = map[i][1];
+    makeArray = map[i][2];
+
+    for (j = 0; j < aliases.length; j++) {
+      value = payload[aliases[j]];
+      payload[aliases[j]] = undefined;
+
+      if (value !== undefined) {
+        break;
+      }
+    }
+
+    if (makeArray) {
+      value = toArray(value);
+    }
+
+    def[property] = value;
+  }
+
+  return def;
+}
+
+function allocState(name, payload) {
+  var state = {
+    name: name,
+    fromTransitions: [],
+    toTransitions: [],
+    willEnter: null,
+    didEnter: null,
+    willExit: null,
+    didExit: null
+  };
+
+  updateState(state, payload);
+
+  return state;
+}
+
+function updateState(state, payload) {
+  var definition = destructDefinition(payload, 'state');
+  var property;
+
+  for (property in definition) {
+    state[property] = definition[property];
+  }
+
+  return state;
+}
+
+function allocEvent(name, payload) {
+  var event = {
+    name: name,
+    transitions: []
+  };
+
+  updateEvent(event, payload);
+
+  return event;
+}
+
+function updateEvent(event, payload) {
+  var definition  = destructDefinition(payload, 'event');
+  var transitions = definition.transitions;
+  var i;
+  var transition;
+
+  for (i = 0; i < transitions.length; i++) {
+    event.transitions.push(allocEventTransition(event, transitions[i]));
+  }
+
+  return event;
+}
+
+function allocEventTransition(event, payload) {
+  var def  = destructDefinition(payload, 'transition');
+  var data = propertiesOf(payload);
+  var fromToSpecifiedByName;
+  var fromToSpecifiedByKVP;
+
+  fromToSpecifiedByName = def.fromStates.length > 0 && def.toState;
+  fromToSpecifiedByKVP  = data.length ? true : false;
+
+  if (fromToSpecifiedByName && fromToSpecifiedByKVP) {
+    throw new Error('You must specify transition states using either form: ' +
+    '"state", to: "state" or fromState: "toState" not both');
+  }
+
+  if (!fromToSpecifiedByName && !fromToSpecifiedByKVP) {
+    throw new Error('You must specify states to transition from and to in ' +
+    'event transitions.');
+  }
+
+  if (fromToSpecifiedByKVP && data.length > 1) {
+    throw new Error('You can only have one fromState: "toState" pair per ' +
+    'transition. Consider using the from: ["states"], to: "state" form ' +
+    'instead');
+  }
+
+  if (fromToSpecifiedByKVP) {
+    def.fromStates = [data[0]];
+    def.toState    = payload[data[0]];
+  }
+
+  def.event = event;
+
+  return def;
+}
+
+function MachineDefinition(payload) {
+  if (!(this instanceof MachineDefinition)) {
+    throw new TypeError('please use the "new" operator to construct a ' +
+    'MachineDefinition instance');
+  }
+
+  if (typeof payload !== 'object') {
+    throw new TypeError('you must pass an object containing and "events" ' +
+    'property as the sole argument to the Compiler constructor');
+  }
+
+  if (!payload.events) {
+    throw new TypeError('"events" must be defined');
+  }
+
+  if (typeof payload.events !== 'object') {
+    throw new TypeError('"events" must be an object');
+  }
+
+  if (payload.states && typeof payload.states !== 'object') {
+    throw new TypeError('"states" must be an object');
+  }
+
+  this._payload      = payload;
+  this._statesByName = {};
+  this._eventsByName = {};
+  this._stateConf    = {};
+
+  if (payload.states) {
+    this._stateConf = destructDefinition(payload.states, 'states');
+  } else {
+    this._stateConf = {};
+  }
+
+  this.isExplicit   = false;
+  this.initialState = INITIALIZED || this._stateConf.initialState;
+  this.states       = [];
+  this.events       = [];
+  this.transitions  = [];
+
+  this._compile();
+}
+
+MachineDefinition.prototype = {
+  lookupState: function(name) {
+    return this._statesByName[name];
+  },
+
+  _compileStates: function() {
+    this._allocateExplicitStates();
+    this._applyStateDefinitions();
+  },
+
+  _allocateExplicitStates: function() {
+    var states = this._stateConf.explicitStates;
+    var i;
+    var stateName;
+
+    if (!states) {
+      return;
+    }
+
+    this.isExplicit = true;
+
+    for (i = 0; i < states.length; i++) {
+      stateName = states[i];
+      this._allocState(stateName);
+    }
+  },
+
+  _applyStateDefinitions: function() {
+    var payload = this._payload.states;
+    var stateName;
+
+    for (stateName in payload) {
+      this._updateState(stateName, payload[stateName]);
+    }
+  },
+
+  _allocState: function(name, def) {
+    var state;
+
+    if (this._lookupState(name)) {
+      throw new Error('state ' + name + ' has already been allocated');
+    }
+
+    state = allocState(name, def);
+
+    this.states.push(state);
+    this._statesByName[name] = state;
+
+    return state;
+  },
+
+  _updateState: function(name, payload) {
+    var found;
+
+    if ((found = this.lookupState(name))) {
+      return updateState(found, payload);
+    }
+
+    if (this.isExplicit) {
+      throw new Error('' + name + ' is not a defined state, add it to the ' +
+      'list of known states');
+    }
+
+    return this._allocState(name, payload);
+  },
+
+  _compileEvents: function() {
+    var payload = this._payload.events;
+    var eventName;
+
+    for (eventName in payload) {
+      this._compileEvent(eventName, payload[eventName]);
+    }
+  },
+
+  _compileEvent: function(name, payload) {
+    var event = this._allocEvent(name, payload);
+
+  },
+
+  _allocEvent: function(name, payload) {
+    var definition = allocEvent(name, payload)
+    this.events.push(definition);
+    this._eventsByName[name] = definition;
+    return definition;
+  },
+
+  _runAfterCompile: function() {
+    this.stateNames = ownPropertiesOf(this._statesByName);
+  },
+
+  _compile: function() {
+    this._compileStates();
+    this._compileEvents();
+    this._unwindTransitions();
+    this._runAfterCompile();
+  }
+};
+},{"./utils":7}],2:[function(_dereq_,module,exports){
+"use strict";
 var Ember = window.Ember["default"] || window.Ember;
 var required = window.Ember.required;
 var computed = window.Ember.computed;
@@ -356,7 +699,7 @@ exports["default"] = Ember.Object.extend({
     this.reopen(mixin);
   }
 });
-},{"./transition":5,"./utils":6}],2:[function(_dereq_,module,exports){
+},{"./transition":6,"./utils":7}],3:[function(_dereq_,module,exports){
 "use strict";
 /*!
 ember-fsm
@@ -364,18 +707,20 @@ ember-fsm
 - License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
 */
 
+var MachineDefinition = _dereq_("./machine-definition")["default"] || _dereq_("./machine-definition");
 var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
 var Transition = _dereq_("./transition")["default"] || _dereq_("./transition");
 var Stateful = _dereq_("./stateful")["default"] || _dereq_("./stateful");
 var reject = _dereq_("./reject").reject;
 var utils = _dereq_("./utils")["default"] || _dereq_("./utils");
 
+exports.MachineDefinition = MachineDefinition;
 exports.Machine = Machine;
 exports.Transition = Transition;
 exports.Stateful = Stateful;
 exports.reject = reject;
 exports.utils = utils;
-},{"./machine":1,"./reject":3,"./stateful":4,"./transition":5,"./utils":6}],3:[function(_dereq_,module,exports){
+},{"./machine":2,"./machine-definition":1,"./reject":4,"./stateful":5,"./transition":6,"./utils":7}],4:[function(_dereq_,module,exports){
 "use strict";
 var Ember = window.Ember["default"] || window.Ember;
 
@@ -384,7 +729,7 @@ function reject() {
 }
 
 exports.reject = reject;
-},{}],4:[function(_dereq_,module,exports){
+},{}],5:[function(_dereq_,module,exports){
 "use strict";
 var Mixin = window.Ember.Mixin;
 var required = window.Ember.required;
@@ -425,7 +770,7 @@ exports["default"] = Mixin.create({
     return fsm.send.apply(fsm, arguments);
   }
 });
-},{"./machine":1}],5:[function(_dereq_,module,exports){
+},{"./machine":2}],6:[function(_dereq_,module,exports){
 "use strict";
 var Ember = window.Ember["default"] || window.Ember;
 var RSVP = window.Ember.RSVP["default"] || window.Ember.RSVP;
@@ -609,9 +954,8 @@ exports["default"] = Ember.Object.extend({
     );
   }
 });
-},{"./utils":6}],6:[function(_dereq_,module,exports){
+},{"./utils":7}],7:[function(_dereq_,module,exports){
 "use strict";
-var Ember = window.Ember["default"] || window.Ember;
 var capitalize = window.Ember.String.capitalize;
 var camelize = window.Ember.String.camelize;
 var Promise = window.Ember.RSVP.Promise;
@@ -659,10 +1003,57 @@ exports.withPromise = withPromise;function capitalCamelize(str) {
 }
 
 exports.capitalCamelize = capitalCamelize;function toArray(thing) {
+  if (thing === undefined) {
+    return [];
+  }
+
   return typeOf(thing) === 'array' ? thing : [thing];
 }
 
-exports.toArray = toArray;
-},{}]},{},[2])
-(2)
+exports.toArray = toArray;function propertiesOf(object) {
+  var properties = [];
+  var property;
+
+  if (!isObject(object)) {
+    throw new TypeError('can\'t determine properties of: ' + object);
+  }
+
+  for (property in object) {
+    if (object.hasOwnProperty(property) && object[property] !== undefined) {
+      properties.push(property);
+    }
+  }
+
+  return properties;
+}
+
+exports.propertiesOf = propertiesOf;function isObject(obj) {
+  var type = typeOf(obj);
+  return type === 'class' || type === 'instance' || type === 'object';
+}
+
+exports.isObject = isObject;function getFirst(obj, properties) {
+  var value;
+  var i;
+
+  properties = toArray(properties);
+
+  if (!isObject(obj)) {
+    return value;
+  }
+
+  for (i = 0; i < properties.length; i++) {
+    value = obj[properties[i]];
+
+    if (value !== undefined) {
+      break;
+    }
+  }
+
+  return value;
+}
+
+exports.getFirst = getFirst;
+},{}]},{},[3])
+(3)
 });

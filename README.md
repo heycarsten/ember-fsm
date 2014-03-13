@@ -51,6 +51,7 @@ var trafficLight = Ember.FSM.Machine.create({
 });
 
 trafficLight.send('cycle');
+```
 
 ## Callbacks
 

@@ -20,9 +20,9 @@ define("ember-fsm/machine",
     ];
 
     __exports__["default"] = Ember.Object.extend({
-      stateEvents:       required(),
       initialState:      'initialized',
       isTransitioning:   computed.bool('activeTransitions.length'),
+      stateEvents:       null,
       activeTransitions: null,
       currentState:      null,
 
@@ -32,6 +32,12 @@ define("ember-fsm/machine",
 
       init: function() {
         this._transitions_ = {};
+        if (!this.get('stateEvents')) {
+          throw new Ember.Error(
+            'No stateEvents were specified, a state machine can not function ' +
+            'without state, COMMON.'
+          );
+        }
         this.set('activeTransitions', []);
         this._load_();
         this.set('currentState', this.get('initialState'));

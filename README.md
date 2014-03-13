@@ -1,12 +1,62 @@
-Ember FSM
-=========
+# Ember FSM
 
 A promise-aware finite state machine implementation for Ember objects.
+
+## Usage
+
+```js
+var trafficLight = Ember.FSM.Machine.create({
+  initialState: 'off',
+
+  stateEvents: {
+    cycle: {
+      transitions: [
+        { from: 'off',   to: 'red',   after: 'turnedRed' },
+        { from: 'red',   to: 'green', after: 'turnedGreen' },
+        { from: 'green', to: 'amber', after: 'turnedAmber' },
+        { from: 'amber', to: 'red',   after: 'turnedRed' }
+      ]
+    },
+
+    turnOff: {
+      transitions: { from: '$all', to: 'off' }
+    }
+  },
+
+  turnedGreen: function() {
+    return this.waitThenCycle(30);
+  },
+
+  turnedAmber: function() {
+    return this.waitThenCycle(3);
+  },
+
+  turnedRed: function() {
+    return this.waitThenCycle(10);
+  },
+
+  wait: function(seconds) {
+    var fsm = this;
+
+    return new Em.RSVP.Promise(function(resolve) {
+      Em.run.later(function() {
+        fsm.send('cycle').then(function() {
+          if (fsm.get('shouldPowerDown')) {
+            fsm.send('powerDown');
+          }
+        });
+      }, seconds * 1000);
+    });
+  }
+});
+
+trafficLight.send('cycle');
 
 ## Callbacks
 
 Callbacks are defined on the 'target', by default the target is the state
-machine itself. This can be changed manually, or by using the Stateful mixin.
+machine itself. This can be changed manually, or by using the `FSM.Stateful`
+mixin.
 
 ```js
 fsm = Ember.FSM.Machine.create({
@@ -67,6 +117,8 @@ Would call:
 ```js
 target.startedSleeping(6, 'hours', newState, transition)
 ```
+
+The event names for transition-based callbacks are
 
 ### Asynchronicity in callbacks
 
@@ -193,4 +245,39 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
     this.sendStateEvent('finished');
   }
 });
+```
+
+## TODO
+
+1. A way to cancel/abort an active transition.
+2. A way to schedule a transition after the next active one finishes.
+3. Explicit state definition and a way to define callbacks at the state-level
+   without needing to use the lower-level callbacks: `willEnterState`,
+   `didEnterState`, `willExitState`, `didExitState`.
+4. Boolean accessors for can/can't transition to states from current state.
+   For example, if we can go to `sleeping` from `tired` but we can't go to
+   `learning` then the following accessors would be set:
+
+   - `fsm.isTired => true`
+   - `fsm.canEnterSleeping => true`
+   - `fsm.canEnterLearning => false`
+
+## Contributing
+
+Install Node.js and NPM, there are packages and binaries on the
+[Node.js](http://nodejs.org) website that make it easy.
+
+```sh
+cd my/fork/of/ember-fsm
+npm install -g broccoli-cli
+npm install
+bower install
+broccoli serve
+```
+
+Then in another session:
+
+```
+cd my/fork/of/ember-fsm
+testem
 ```

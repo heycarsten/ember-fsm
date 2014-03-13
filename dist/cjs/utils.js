@@ -1,11 +1,19 @@
 "use strict";
+var Ember = require("ember")["default"] || require("ember");
 var capitalize = require("ember/string").capitalize;
 var camelize = require("ember/string").camelize;
 var Promise = require("ember/rsvp").Promise;
 var typeOf = require("ember").typeOf;
+var get = require("ember").get;
 
 function isThenable(thing) {
-  return typeOf(thing) === 'object' && typeOf(thing.then) === 'function';
+  var thingType = typeOf(thing);
+
+  if (thingType === 'object' || thingType === 'instance') {
+    return typeOf(get(thing, 'then')) === 'function';
+  } else {
+    return false;
+  }
 }
 
 exports.isThenable = isThenable;// Takes a function, calls it, then wraps the result in a promise if it's not

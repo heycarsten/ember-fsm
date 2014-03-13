@@ -8,9 +8,11 @@ ember-fsm
 var Machine = require("./machine")["default"] || require("./machine");
 var Transition = require("./transition")["default"] || require("./transition");
 var Stateful = require("./stateful")["default"] || require("./stateful");
-var reject = require("./reject")["default"] || require("./reject");
+var reject = require("./reject").reject;
+var utils = require("./utils")["default"] || require("./utils");
 
 exports.Machine = Machine;
 exports.Transition = Transition;
 exports.Stateful = Stateful;
 exports.reject = reject;
+exports.utils = utils;

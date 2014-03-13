@@ -1,14 +1,22 @@
 define(
-  ["ember/string","ember/rsvp","ember","exports"],
+  ["ember","ember/string","ember/rsvp","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var capitalize = __dependency1__.capitalize;
-    var camelize = __dependency1__.camelize;
-    var Promise = __dependency2__.Promise;
-    var typeOf = __dependency3__.typeOf;
+    var Ember = __dependency1__["default"] || __dependency1__;
+    var capitalize = __dependency2__.capitalize;
+    var camelize = __dependency2__.camelize;
+    var Promise = __dependency3__.Promise;
+    var typeOf = __dependency1__.typeOf;
+    var get = __dependency1__.get;
 
     function isThenable(thing) {
-      return typeOf(thing) === 'object' && typeOf(thing.then) === 'function';
+      var thingType = typeOf(thing);
+
+      if (thingType === 'object' || thingType === 'instance') {
+        return typeOf(get(thing, 'then')) === 'function';
+      } else {
+        return false;
+      }
     }
 
     __exports__.isThenable = isThenable;// Takes a function, calls it, then wraps the result in a promise if it's not

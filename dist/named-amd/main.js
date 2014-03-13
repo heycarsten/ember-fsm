@@ -353,8 +353,8 @@ define("ember-fsm/machine",
       }
     });
   });define("ember-fsm",
-  ["./machine","./transition","./stateful","./reject","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
+  ["./machine","./transition","./stateful","./reject","./utils","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __exports__) {
     "use strict";
     /*!
     ember-fsm
@@ -365,12 +365,14 @@ define("ember-fsm/machine",
     var Machine = __dependency1__["default"] || __dependency1__;
     var Transition = __dependency2__["default"] || __dependency2__;
     var Stateful = __dependency3__["default"] || __dependency3__;
-    var reject = __dependency4__["default"] || __dependency4__;
+    var reject = __dependency4__.reject;
+    var utils = __dependency5__["default"] || __dependency5__;
 
     __exports__.Machine = Machine;
     __exports__.Transition = Transition;
     __exports__.Stateful = Stateful;
     __exports__.reject = reject;
+    __exports__.utils = utils;
   });define("ember-fsm/reject",
   ["ember","exports"],
   function(__dependency1__, __exports__) {
@@ -612,16 +614,24 @@ define("ember-fsm/machine",
       }
     });
   });define("ember-fsm/utils",
-  ["ember/string","ember/rsvp","ember","exports"],
+  ["ember","ember/string","ember/rsvp","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
-    var capitalize = __dependency1__.capitalize;
-    var camelize = __dependency1__.camelize;
-    var Promise = __dependency2__.Promise;
-    var typeOf = __dependency3__.typeOf;
+    var Ember = __dependency1__["default"] || __dependency1__;
+    var capitalize = __dependency2__.capitalize;
+    var camelize = __dependency2__.camelize;
+    var Promise = __dependency3__.Promise;
+    var typeOf = __dependency1__.typeOf;
+    var get = __dependency1__.get;
 
     function isThenable(thing) {
-      return typeOf(thing) === 'object' && typeOf(thing.then) === 'function';
+      var thingType = typeOf(thing);
+
+      if (thingType === 'object' || thingType === 'instance') {
+        return typeOf(get(thing, 'then')) === 'function';
+      } else {
+        return false;
+      }
     }
 
     __exports__.isThenable = isThenable;// Takes a function, calls it, then wraps the result in a promise if it's not

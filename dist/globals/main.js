@@ -361,13 +361,15 @@ ember-fsm
 var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
 var Transition = _dereq_("./transition")["default"] || _dereq_("./transition");
 var Stateful = _dereq_("./stateful")["default"] || _dereq_("./stateful");
-var reject = _dereq_("./reject")["default"] || _dereq_("./reject");
+var reject = _dereq_("./reject").reject;
+var utils = _dereq_("./utils")["default"] || _dereq_("./utils");
 
 exports.Machine = Machine;
 exports.Transition = Transition;
 exports.Stateful = Stateful;
 exports.reject = reject;
-},{"./machine":1,"./reject":3,"./stateful":4,"./transition":5}],3:[function(_dereq_,module,exports){
+exports.utils = utils;
+},{"./machine":1,"./reject":3,"./stateful":4,"./transition":5,"./utils":6}],3:[function(_dereq_,module,exports){
 "use strict";
 var Ember = window.Ember["default"] || window.Ember;
 
@@ -603,13 +605,21 @@ exports["default"] = Ember.Object.extend({
 });
 },{"./utils":6}],6:[function(_dereq_,module,exports){
 "use strict";
+var Ember = window.Ember["default"] || window.Ember;
 var capitalize = window.Ember.String.capitalize;
 var camelize = window.Ember.String.camelize;
 var Promise = window.Ember.RSVP.Promise;
 var typeOf = window.Ember.typeOf;
+var get = window.Ember.get;
 
 function isThenable(thing) {
-  return typeOf(thing) === 'object' && typeOf(thing.then) === 'function';
+  var thingType = typeOf(thing);
+
+  if (thingType === 'object' || thingType === 'instance') {
+    return typeOf(get(thing, 'then')) === 'function';
+  } else {
+    return false;
+  }
 }
 
 exports.isThenable = isThenable;// Takes a function, calls it, then wraps the result in a promise if it's not

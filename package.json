@@ -25,7 +25,6 @@
     "finite",
     "state",
     "machine",
-    "asyncronous",
     "promise"
   ],
   "bugs": {

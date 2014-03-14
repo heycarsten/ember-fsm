@@ -2,8 +2,7 @@ define("ember-fsm/machine-definition",
   ["./utils","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
-    var propertiesOf = __dependency1__.propertiesOf;
-    var getFirst = __dependency1__.getFirst;
+    var ownPropertiesOf = __dependency1__.ownPropertiesOf;
     var toArray = __dependency1__.toArray;
 
     __exports__["default"] = MachineDefinition;
@@ -13,7 +12,7 @@ define("ember-fsm/machine-definition",
     var INITIALIZED    = 'initialized';
     var TRANSITIONS    = ['transition', 'transitions'];
     var INITIAL_STATES = ['initialState'];
-    var EXPLICITS      = ['explicitStates', 'knownStates'];
+    var KNOWN_STATES   = ['explicitStates', 'knownStates'];
     var BEFORES        = ['before', 'beforeEvent'];
     var AFTERS         = ['after', 'afterEvent'];
     var WILL_ENTERS    = ['willEnter'];
@@ -45,8 +44,8 @@ define("ember-fsm/machine-definition",
       ],
 
       states: [
-        ['initialState',   INITIAL_STATES, false],
-        ['explicitStates', EXPLICITS,      true]
+        ['initialState', INITIAL_STATES, false],
+        ['knownStates',  KNOWN_STATES,   true]
       ],
 
       state: [
@@ -56,151 +55,6 @@ define("ember-fsm/machine-definition",
         ['didExit',   DID_EXITS,   true]
       ]
     };
-
-    // Extracts definition keys and leaves behind "data", for example consider the
-    // "states" node below:
-    //
-    // payload = {
-    //   states: {
-    //     initialState: 'ready',
-    //     knownStates: 'ready',
-    //
-    //     ready: {
-    //       willEnter: 'notifySomeone'
-    //     }
-    //   }
-    // };
-    //
-    // definition = destructDefinition(payload.states, 'states');
-    // definition => { initialState: 'ready', explicitStates: ['ready'] }
-    // payload    => { ready: { willEnter: 'notifySomeone' } }
-    function destructDefinition(payload, type) {
-      var map = DEFMAP[type];
-      var def = {};
-      var property;
-      var aliases;
-      var makeArray;
-      var value;
-      var i;
-      var j;
-
-      if (!payload) {
-        throw new TypeError('Expected payload object');
-      }
-
-      if (!map) {
-        throw new TypeError('type is unknown: ' + type);
-      }
-
-      for (i = 0; i < map.length; i++) {
-        property  = map[i][0];
-        aliases   = map[i][1];
-        makeArray = map[i][2];
-
-        for (j = 0; j < aliases.length; j++) {
-          value = payload[aliases[j]];
-          payload[aliases[j]] = undefined;
-
-          if (value !== undefined) {
-            break;
-          }
-        }
-
-        if (makeArray) {
-          value = toArray(value);
-        }
-
-        def[property] = value;
-      }
-
-      return def;
-    }
-
-    function allocState(name, payload) {
-      var state = {
-        name: name,
-        fromTransitions: [],
-        toTransitions: [],
-        willEnter: null,
-        didEnter: null,
-        willExit: null,
-        didExit: null
-      };
-
-      updateState(state, payload);
-
-      return state;
-    }
-
-    function updateState(state, payload) {
-      var definition = destructDefinition(payload, 'state');
-      var property;
-
-      for (property in definition) {
-        state[property] = definition[property];
-      }
-
-      return state;
-    }
-
-    function allocEvent(name, payload) {
-      var event = {
-        name: name,
-        transitions: []
-      };
-
-      updateEvent(event, payload);
-
-      return event;
-    }
-
-    function updateEvent(event, payload) {
-      var definition  = destructDefinition(payload, 'event');
-      var transitions = definition.transitions;
-      var i;
-      var transition;
-
-      for (i = 0; i < transitions.length; i++) {
-        event.transitions.push(allocEventTransition(event, transitions[i]));
-      }
-
-      return event;
-    }
-
-    function allocEventTransition(event, payload) {
-      var def  = destructDefinition(payload, 'transition');
-      var data = propertiesOf(payload);
-      var fromToSpecifiedByName;
-      var fromToSpecifiedByKVP;
-
-      fromToSpecifiedByName = def.fromStates.length > 0 && def.toState;
-      fromToSpecifiedByKVP  = data.length ? true : false;
-
-      if (fromToSpecifiedByName && fromToSpecifiedByKVP) {
-        throw new Error('You must specify transition states using either form: ' +
-        '"state", to: "state" or fromState: "toState" not both');
-      }
-
-      if (!fromToSpecifiedByName && !fromToSpecifiedByKVP) {
-        throw new Error('You must specify states to transition from and to in ' +
-        'event transitions.');
-      }
-
-      if (fromToSpecifiedByKVP && data.length > 1) {
-        throw new Error('You can only have one fromState: "toState" pair per ' +
-        'transition. Consider using the from: ["states"], to: "state" form ' +
-        'instead');
-      }
-
-      if (fromToSpecifiedByKVP) {
-        def.fromStates = [data[0]];
-        def.toState    = payload[data[0]];
-      }
-
-      def.event = event;
-
-      return def;
-    }
 
     function MachineDefinition(payload) {
       if (!(this instanceof MachineDefinition)) {
@@ -239,10 +93,159 @@ define("ember-fsm/machine-definition",
       this.isExplicit   = false;
       this.initialState = INITIALIZED || this._stateConf.initialState;
       this.states       = [];
+      this.stateNames   = [];
       this.events       = [];
       this.transitions  = [];
 
       this._compile();
+    }
+
+    // Extracts definition keys and leaves behind "data", for example consider the
+    // "states" node below:
+    //
+    // payload = {
+    //   states: {
+    //     initialState: 'ready',
+    //     knownStates: 'ready',
+    //
+    //     ready: {
+    //       willEnter: 'notifySomeone'
+    //     }
+    //   }
+    // };
+    //
+    // definition = destructDefinition(payload.states, 'states');
+    // definition => { initialState: 'ready', knownStates: ['ready'] }
+    // payload    => { ready: { willEnter: 'notifySomeone' } }
+    function destructDefinition(payload, type) {
+      var map = DEFMAP[type];
+      var def = {};
+      var property;
+      var aliases;
+      var makeArray;
+      var value;
+      var i;
+      var j;
+
+      if (!payload) {
+        throw new TypeError('Expected payload object');
+      }
+
+      if (!map) {
+        throw new TypeError('type is unknown: ' + type);
+      }
+
+      for (i = 0; i < map.length; i++) {
+        property  = map[i][0];
+        aliases   = map[i][1];
+        makeArray = map[i][2];
+
+        for (j = 0; j < aliases.length; j++) {
+          value = payload[aliases[j]];
+
+          if (value !== undefined) {
+            delete payload[aliases[j]];
+            break;
+          }
+        }
+
+        if (makeArray) {
+          value = toArray(value);
+        }
+
+        def[property] = value;
+      }
+
+      return def;
+    }
+
+    function allocState(name, payload) {
+      var state = {
+        name: name,
+        fromTransitions: [],
+        toTransitions: [],
+        willEnter: null,
+        didEnter: null,
+        willExit: null,
+        didExit: null
+      };
+
+      updateState(state, payload);
+
+      return state;
+    }
+
+    function updateState(state, payload) {
+      var definition;
+      var property;
+
+      if (!payload) {
+        return state;
+      }
+
+      definition = destructDefinition(payload, 'state');
+
+      for (property in definition) {
+        state[property] = definition[property];
+      }
+
+      return state;
+    }
+
+    function allocEvent(name, payload) {
+      var event = {
+        name: name,
+        transitions: []
+      };
+
+      updateEvent(event, payload);
+
+      return event;
+    }
+
+    function updateEvent(event, payload) {
+      var definition  = destructDefinition(payload, 'event');
+      var transitions = definition.transitions;
+      var i;
+
+      for (i = 0; i < transitions.length; i++) {
+        event.transitions.push(allocEventTransition(event, transitions[i]));
+      }
+
+      return event;
+    }
+
+    function allocEventTransition(event, payload) {
+      var def  = destructDefinition(payload, 'transition');
+      var data = ownPropertiesOf(payload);
+      var fromToSpecifiedByName;
+      var fromToSpecifiedByKVP;
+
+      fromToSpecifiedByName = def.fromStates.length > 0 && def.toState;
+      fromToSpecifiedByKVP  = data.length ? true : false;
+
+      if (fromToSpecifiedByName && fromToSpecifiedByKVP) {
+        throw new Error('You must specify transition states using either form: ' +
+        '"state", to: "state" or fromState: "toState" not both');
+      }
+
+      if (!fromToSpecifiedByName && !fromToSpecifiedByKVP) {
+        throw new Error('You must specify states to transition from and to in ' +
+        'event transitions.');
+      }
+
+      if (fromToSpecifiedByKVP && data.length > 1) {
+        throw new Error('You can only have one fromState: "toState" pair per ' +
+        'transition. Consider using the from: ["states"], to: "state" form ' +
+        'instead');
+      }
+
+      if (fromToSpecifiedByKVP) {
+        def.fromStates = [data[0]];
+        def.toState    = payload[data[0]];
+      }
+
+      return def;
     }
 
     MachineDefinition.prototype = {
@@ -256,7 +259,7 @@ define("ember-fsm/machine-definition",
       },
 
       _allocateExplicitStates: function() {
-        var states = this._stateConf.explicitStates;
+        var states = this._stateConf.knownStates;
         var i;
         var stateName;
 
@@ -268,6 +271,7 @@ define("ember-fsm/machine-definition",
 
         for (i = 0; i < states.length; i++) {
           stateName = states[i];
+          this.stateNames.push(stateName);
           this._allocState(stateName);
         }
       },
@@ -284,7 +288,7 @@ define("ember-fsm/machine-definition",
       _allocState: function(name, def) {
         var state;
 
-        if (this._lookupState(name)) {
+        if (this.lookupState(name)) {
           throw new Error('state ' + name + ' has already been allocated');
         }
 
@@ -315,21 +319,91 @@ define("ember-fsm/machine-definition",
         var payload = this._payload.events;
         var eventName;
 
+        console.log(payload);
+
         for (eventName in payload) {
           this._compileEvent(eventName, payload[eventName]);
+        }
+
+        if (!this.events.length) {
+          throw new Error('no events specified, at least one event must be ' +
+          'specified');
         }
       },
 
       _compileEvent: function(name, payload) {
         var event = this._allocEvent(name, payload);
-
+        this.events.push(event);
+        this._eventsByName[name] = event;
       },
 
       _allocEvent: function(name, payload) {
-        var definition = allocEvent(name, payload)
-        this.events.push(definition);
-        this._eventsByName[name] = definition;
-        return definition;
+        return allocEvent(name, payload);
+      },
+
+      _unwindTransitions: function() {
+        var i;
+        var j;
+        var k;
+        var event;
+        var transition;
+        var fromState;
+        var set = {};
+        var implicitStates;
+        var explicitState;
+
+        function addState(stateName) {
+          set[stateName] = stateName;
+        }
+
+        for (i = 0; i < this.events.length; i++) {
+          event = this.events[i];
+
+          for (j = 0; j < event.transitions.length; j++) {
+            transition = event.transitions[j];
+
+            if (transition.toState === SAME_MACRO) {
+              continue;
+            } else {
+              this._updateState(transition.toState);
+              addState(transition.toState);
+            }
+
+            for (k = 0; k < transition.fromStates.length; k++) {
+              fromState = transition.fromStates[k];
+
+              if (fromState === ALL_MACRO) {
+                continue;
+              } else {
+                this._updateState(fromState);
+                addState(fromState);
+              }
+            }
+          }
+        }
+
+        if (!this.isExplicit) {
+          return;
+        }
+
+        implicitStates = ownPropertiesOf(set);
+
+        for (i = 0; i < this.stateNames.length; i++) {
+          explicitState = this.stateNames[i];
+
+          if (!implicitStates.contains(explicitState)) {
+            throw new Error('' + explicitState + ' state is not used in any ' +
+            'transitions; it is explicitly defined to be used');
+          }
+        }
+      },
+
+      _allocTransition: function(payload) {
+
+      },
+
+      _unwindTransition: function(transition) {
+        allocTransition()
       },
 
       _runAfterCompile: function() {
@@ -1024,7 +1098,7 @@ define("ember-fsm/machine-definition",
       return typeOf(thing) === 'array' ? thing : [thing];
     }
 
-    __exports__.toArray = toArray;function propertiesOf(object) {
+    __exports__.toArray = toArray;function ownPropertiesOf(object) {
       var properties = [];
       var property;
 
@@ -1041,7 +1115,7 @@ define("ember-fsm/machine-definition",
       return properties;
     }
 
-    __exports__.propertiesOf = propertiesOf;function isObject(obj) {
+    __exports__.ownPropertiesOf = ownPropertiesOf;function isObject(obj) {
       var type = typeOf(obj);
       return type === 'class' || type === 'instance' || type === 'object';
     }

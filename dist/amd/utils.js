@@ -56,7 +56,7 @@ define(
       return typeOf(thing) === 'array' ? thing : [thing];
     }
 
-    __exports__.toArray = toArray;function propertiesOf(object) {
+    __exports__.toArray = toArray;function ownPropertiesOf(object) {
       var properties = [];
       var property;
 
@@ -73,7 +73,7 @@ define(
       return properties;
     }
 
-    __exports__.propertiesOf = propertiesOf;function isObject(obj) {
+    __exports__.ownPropertiesOf = ownPropertiesOf;function isObject(obj) {
       var type = typeOf(obj);
       return type === 'class' || type === 'instance' || type === 'object';
     }

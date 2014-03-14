@@ -53,7 +53,7 @@ exports.capitalCamelize = capitalCamelize;function toArray(thing) {
   return typeOf(thing) === 'array' ? thing : [thing];
 }
 
-exports.toArray = toArray;function propertiesOf(object) {
+exports.toArray = toArray;function ownPropertiesOf(object) {
   var properties = [];
   var property;
 
@@ -70,7 +70,7 @@ exports.toArray = toArray;function propertiesOf(object) {
   return properties;
 }
 
-exports.propertiesOf = propertiesOf;function isObject(obj) {
+exports.ownPropertiesOf = ownPropertiesOf;function isObject(obj) {
   var type = typeOf(obj);
   return type === 'class' || type === 'instance' || type === 'object';
 }

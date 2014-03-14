@@ -151,7 +151,7 @@ describe('utils.ownPropertiesOf', function() {
     expect(ary).toContain('one', 'two', 'three');
   });
 
-  it('doesn\'t return properties belonging to prototype', function() {
+  it('does not return properties belonging to prototype', function() {
     var obj = Em.Object.extend({ yo: 'hi' }).create({ cool: true });
     var ary = ownPropertiesOf(obj);
 
@@ -159,10 +159,16 @@ describe('utils.ownPropertiesOf', function() {
     expect(ary).toContain('cool');
   });
 
-  it('doesn\'t work on arrays', function() {
+  it('does not work on arrays', function() {
     expect(function() {
       ownPropertiesOf(['oops', 'i', 'fail']);
     }).toThrowError(TypeError);
+  });
+
+  it('does not return properties that are undefined', function() {
+    var ary = ownPropertiesOf({ one: 1, t00: undefined, thr33: undefined });
+    expect(ary.length).toBe(1);
+    expect(ary).toContain('one');
   });
 });
 

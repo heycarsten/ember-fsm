@@ -55,7 +55,7 @@ describe('FSM.MachineDefinition', function() {
     it('does not allow transitions to specify unlisted states', function() {
       expect(function() {
         create({
-          states: { explicit: ['farting'] },
+          states: { knownStates: ['farting'] },
           events: {
             shart: { transitions: [{ farting: 'soiled' }] }
           }
@@ -66,12 +66,36 @@ describe('FSM.MachineDefinition', function() {
     it('does not allow specified states to be unused', function() {
       expect(function() {
         create({
-          states: { explicit: ['wiggling', 'wobbling', 'farting'] },
+          states: { explicitStates: ['wiggling', 'wobbling', 'farting'] },
           events: {
             wiggle: { transitions: [{ 'wiggling': 'wobbling' }] }
           }
         });
       }).toThrowError(/is not used/);
+    });
+  });
+
+  describe('compiling transitions', function() {
+    it('aliases transition to transitions', function() {
+      var def = create({ events: { amaze: { transition: { x: 'y' } } } });
+      expect(def.stateNames.length).toBe(2);
+      expect(def.stateNames).toContain('x', 'y');
+    });
+  });
+
+  describe('unwinding transitions', function() {
+    xit('expands $all to all other known states', function() {
+      var def = create({ events: {
+        wiggle: { transitions: { $all: 'y' } },
+        doggle: { transitions: { x: 'z' } },
+        wobble: { transitions: { y: 'x' } }
+      } });
+
+      var transitions = def.transitionsFor('wiggle');
+      var fromStates  = transitions.map(function(t) { return t.fromState; });
+
+      expect(fromStates.length).toBe(3);
+      expect(fromStates).toContain('x', 'y', 'z');
     });
   });
 });

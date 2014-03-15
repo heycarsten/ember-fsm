@@ -267,11 +267,58 @@ describe('FSM.MachineDefinition', function() {
 
     it('allows multiple fromStates to be specified in one transition', function() {
       var t = build({ from: ['a', 'b'], to: 'c' });
+
       expect(t.length).toBe(2);
       expect(t[0].fromState).toBe('a');
       expect(t[0].toState).toBe('c');
       expect(t[1].fromState).toBe('b');
       expect(t[1].toState).toBe('c');
+    });
+  });
+
+  describe('Public API', function() {
+    var def = create({
+      events: {
+        one: { transitions: { initialized: 'a' } },
+        two: { transitions: { a: 'b' } }
+      }
+    });
+
+    it('provides eventNames', function() {
+      expect(def.eventNames.length).toBe(2);
+      expect(def.eventNames).toContain('one', 'two');
+    });
+
+    it('provides events', function() {
+      expect(def.events.length).toBe(2);
+      expect(def.events.mapBy('name')).toContain('one', 'two');
+    });
+
+    it('provides stateNames', function() {
+      expect(def.stateNames.length).toBe(3);
+      expect(def.stateNames).toContain('initialized', 'a', 'b');
+    });
+
+    it('provides states', function() {
+      expect(def.states.length).toBe(3);
+      expect(def.states.mapBy('name')).toContain('initialized', 'a', 'b');
+    });
+
+    it('can look up states by name', function() {
+      expect(def.lookupState('a').name).toBe('a');
+    });
+
+    it('can look up events by name', function() {
+      expect(def.lookupEvent('one').name).toBe('one');
+    });
+
+    it('can look up transitions by event', function() {
+      expect(def.transitionsFor('one').length).toBe(1);
+    });
+
+    it('can look up transitions by event and starting state', function() {
+      expect(def.transitionsFor('one', 'initialized').length).toBe(1);
+      expect(def.transitionsFor('one', 'b').length).toBe(0);
     });
   });
 });

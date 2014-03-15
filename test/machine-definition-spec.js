@@ -5,7 +5,7 @@ describe('FSM.MachineDefinition', function() {
     return new MachineDefinition(args);
   }
 
-  describe('instantiation', function() {
+  describe('Instantiation', function() {
     it('requires new operator', function() {
       expect(function() {
         MachineDefinition({ events: {} }); // jshint ignore:line
@@ -45,9 +45,7 @@ describe('FSM.MachineDefinition', function() {
       });
       expect(def.initialState).toBe('initialized');
     });
-  });
 
-  describe('compiling events', function() {
     it('requires at least one event', function() {
       expect(function() {
         create({ events: {} });
@@ -55,7 +53,7 @@ describe('FSM.MachineDefinition', function() {
     });
   });
 
-  describe('explicitly defined states', function() {
+  describe('Explicitly defined states', function() {
     it('does not allow transitions to specify unlisted states', function() {
       expect(function() {
         create({
@@ -93,7 +91,7 @@ describe('FSM.MachineDefinition', function() {
     });
   });
 
-  describe('compiling transitions', function() {
+  describe('Compiling transitions', function() {
     it('aliases transition to transitions', function() {
       var def = create({
         events: {
@@ -108,7 +106,7 @@ describe('FSM.MachineDefinition', function() {
     });
   });
 
-  describe('unwinding transitions', function() {
+  describe('Unwinding transitions', function() {
     it('expands $all to all other known states', function() {
       var def = create({
         states: {
@@ -116,18 +114,16 @@ describe('FSM.MachineDefinition', function() {
         },
         events: {
           reset: { transitions: { $all: 'a' } },
-          fobble: { transitions: { x: 'a' } },
-          doggle: { transitions: { y: 'b' } },
-          wobble: { transitions: { z: 'c' } }
+          fobble: { transitions: { a: 'x' } },
+          doggle: { transitions: { a: 'y' } },
+          wobble: { transitions: { a: 'z' } }
         }
       });
 
-      var transitions = def.transitionsFor('reset');
-
-      expect(transitions.length).toBe(6);
-
-      transitions.forEach(function(t) {
-        expect(t.toState.name).toBe('a');
+      ['a', 'x', 'y', 'z'].forEach(function(fromState) {
+        var transitions = def.transitionsFor('reset', fromState);
+        expect(transitions.length).toBe(1);
+        expect(transitions[0].fromState).toBe(fromState);
       });
     });
 
@@ -146,7 +142,7 @@ describe('FSM.MachineDefinition', function() {
       var transitions = def.transitionsFor('toA', 'a');
 
       expect(transitions.length).toBe(1);
-      expect(transitions[0].toState.name).toBe('a');
+      expect(transitions[0].toState).toBe('a');
     });
 
     it('allows multiple guarded transitions with the same from state', function() {
@@ -174,8 +170,108 @@ describe('FSM.MachineDefinition', function() {
       });
     });
 
-    xit('does not allow unguarded transitions with the same from state', function() {
+    it('does not allow multiple transitions per transition definition', function() {
+      // The reason why is that the order of objects can't be predicted but
+      // order of transitions is important when using guards
+      expect(function() {
+        create({
+          events: {
+            pedal: {
+              transitions: {
+                'initialized':    'mounting',
+                'mounting':       'moving.slowly',
+                'moving.slowly':  'moving.quickly',
+                'moving.quickly': '$same'
+              }
+            }
+          }
+        });
+      }).toThrowError(/only one .+ per object/);
+    });
 
+    it('does not allow unguarded transitions with the same from state', function() {
+      expect(function() {
+        create({
+          states: { initialState: 'off' },
+          events: {
+            run: {
+              transitions: [
+                { on: '$same' },
+                { off: 'on' },
+                { off: 'on' }
+              ]
+            }
+          }
+        });
+      }).toThrowError(/more than one/);
+
+      expect(function() {
+        create({
+          states: { initialState: 'off' },
+          events: {
+            run: {
+              transitions: [
+                { on: '$same' },
+                { off: 'on' },
+                { $all: 'on' }
+              ]
+            }
+          }
+        });
+      }).toThrowError(/more than one/);
+    });
+  });
+
+  describe('Unwound transitions', function() {
+    function build(transitions) {
+      return create({
+        states: { initialState: 'a' },
+        events: { run: { transitions: transitions } }
+      }).transitionsFor('run');
+    }
+
+    it('sets array properties to be arrays', function() {
+      var t = build([
+        { a: 'b', before: 'doTing' },
+        { d: 'e', willEnter: 'doTing' },
+        { f: 'g', didEnter: 'doTing' },
+        { h: 'i', willExit: 'doTing' },
+        { j: 'k', didExit: 'doTing' },
+        { b: 'c', after: 'doTing' }
+      ]);
+
+      expect(t[0].beforeEvent).toContain('doTing');
+      expect(t[1].willEnter).toContain('doTing');
+      expect(t[2].didEnter).toContain('doTing');
+      expect(t[3].willExit).toContain('doTing');
+      expect(t[4].didExit).toContain('doTing');
+      expect(t[5].afterEvent).toContain('doTing');
+    });
+
+    it('passes through non-array properties', function() {
+      var t = build([
+        { a: 'b', guard: 'hasTing' },
+        { b: 'c', unless: 'hasTing' }
+      ]);
+
+      expect(t[0].doIf).toBe('hasTing');
+      expect(t[1].doUnless).toBe('hasTing');
+    });
+
+    it('allows fromStates and toState to be passed as named properties', function() {
+      var t = build({ from: 'a', to: 'b' });
+
+      expect(t[0].fromState).toBe('a');
+      expect(t[0].toState).toBe('b');
+    });
+
+    it('allows multiple fromStates to be specified in one transition', function() {
+      var t = build({ from: ['a', 'b'], to: 'c' });
+      expect(t.length).toBe(2);
+      expect(t[0].fromState).toBe('a');
+      expect(t[0].toState).toBe('c');
+      expect(t[1].fromState).toBe('b');
+      expect(t[1].toState).toBe('c');
     });
   });
 });

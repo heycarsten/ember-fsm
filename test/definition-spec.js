@@ -181,23 +181,47 @@ describe('FSM.Definition', function() {
               { on: '$same' },
               { off: 'on', unless: 'isWarm' },
               { off: 'on', guard: 'hasPower' },
+              { off: 'off' }
             ]
           }
         }
       });
 
-      var transitions = def.transitionsFor('run', 'off');
+      var t = def.transitionsFor('run', 'off');
 
-      expect(transitions.length).toBe(2);
+      expect(t.length).toBe(3);
 
-      transitions.forEach(function(t) {
-        expect(t.isGuarded).toBe(true);
-      });
+      expect(t[0].isGuarded).toBe(true);
+      expect(t[0].doUnless).toBe('isWarm');
+      expect(t[1].isGuarded).toBe(true);
+      expect(t[1].doIf).toBe('hasPower');
+      expect(t[2].isGuarded).toBe(false);
+    });
+
+    it('allows no more than one guarded transition with the same from state', function() {
+      expect(function() {
+        create({
+          states: {
+            initialState: 'off'
+          },
+          events: {
+            run: {
+              transitions: [
+                { on: '$same' },
+                { off: 'on', unless: 'isWarm' },
+                { off: 'on', guard: 'hasPower' },
+                { off: 'off' },
+                { off: 'fail' }
+              ]
+            }
+          }
+        });
+      }).toThrowError(/more than one/);
     });
 
     it('does not allow multiple transitions per transition definition', function() {
-      // The reason why is that the order of objects can't be predicted but
-      // order of transitions is important when using guards
+      // The reason why is that the order of object properties isn't guarenteed
+      // and it's vital that transition order is maintained
       expect(function() {
         create({
           events: {

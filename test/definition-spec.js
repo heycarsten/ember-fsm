@@ -1,14 +1,14 @@
-describe('FSM.MachineDefinition', function() {
-  var MachineDefinition = Ember.FSM.MachineDefinition; // jshint ignore:line
+describe('FSM.Definition', function() {
+  var Definition = Ember.FSM.Definition; // jshint ignore:line
 
   function create(args) {
-    return new MachineDefinition(args);
+    return new Definition(args);
   }
 
   describe('Instantiation', function() {
     it('requires new operator', function() {
       expect(function() {
-        MachineDefinition({ events: {} }); // jshint ignore:line
+        Definition({ events: {} }); // jshint ignore:line
       }).toThrowError(TypeError);
     });
 
@@ -121,9 +121,9 @@ describe('FSM.MachineDefinition', function() {
       });
 
       ['a', 'x', 'y', 'z'].forEach(function(fromState) {
-        var transitions = def.transitionsFor('reset', fromState);
-        expect(transitions.length).toBe(1);
-        expect(transitions[0].fromState).toBe(fromState);
+        var t = def.transitionsFor('reset', fromState);
+        expect(t.length).toBe(1);
+        expect(t[0].fromState).toBe(fromState);
       });
     });
 
@@ -139,10 +139,35 @@ describe('FSM.MachineDefinition', function() {
         }
       });
 
-      var transitions = def.transitionsFor('toA', 'a');
+      var t = def.transitionsFor('toA', 'a');
 
-      expect(transitions.length).toBe(1);
-      expect(transitions[0].toState).toBe('a');
+      expect(t.length).toBe(1);
+      expect(t[0].toState).toBe('a');
+    });
+
+    it('replaces $initial with the initial state', function() {
+      var def = create({
+        states: {
+          $initial: {
+            willEnter: 'sayHello'
+          }
+        },
+        events: {
+          one: { transition: { $initial: 'a' } },
+          two: { transition: { a: '$initial' } }
+        }
+      });
+
+      var t0 = def.transitionsFor('one', '$initial');
+      var t1 = def.transitionsFor('two', 'a');
+      var s  = def.lookupState('$initial');
+
+      expect(t0.length).toBe(1);
+      expect(t0[0].toState).toBe('a');
+      expect(t1.length).toBe(1);
+      expect(t1[0].toState).toBe('initialized');
+      expect(s.willEnter.length).toBe(1);
+      expect(s.willEnter[0]).toBe('sayHello');
     });
 
     it('allows multiple guarded transitions with the same from state', function() {

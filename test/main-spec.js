@@ -5,8 +5,8 @@ describe('Ember.FSM', function() {
     expect(FSM).toBeDefined();
   });
 
-  it('imports MachineDefinition', function() {
-    expect(FSM.MachineDefinition).toBeDefined();
+  it('imports Definition', function() {
+    expect(FSM.Definition).toBeDefined();
   });
 
   it('imports Machine', function() {

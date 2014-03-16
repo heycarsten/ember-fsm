@@ -29,7 +29,7 @@ describe('FSM.Machine', function() {
     it('sets the currentState to the initialState', function() {
       var m = create({
         states: { initialState: 'ready' },
-        events: { one: {transition: { ready: 'a' } } }
+        events: { one: { transition: { ready: 'a' } } }
       });
 
       expect(m.get('currentState')).toBe('ready');

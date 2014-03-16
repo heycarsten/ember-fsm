@@ -269,6 +269,55 @@ describe('FSM.Definition', function() {
         });
       }).toThrowError(/more than one/);
     });
+
+    it('tracks potential exit transitions for each state', function() {
+      var def = create({
+        states: { initialState: 'a' },
+        events: {
+          one: {
+            transition: { a: 'b' }
+          },
+
+          two: {
+            transition: { a: 'b' }
+          }
+        }
+      });
+
+      var a = def.lookupState('a');
+
+      expect(a.exitTransitions.length).toBe(2);
+      expect(a.exitTransitions[0].toState).toBe('b');
+      expect(a.exitTransitions[0].event).toBe('one');
+      expect(a.exitTransitions[1].toState).toBe('b');
+      expect(a.exitTransitions[1].event).toBe('two');
+    });
+
+    it('tracks potential entry transitions for each state', function() {
+      var def = create({
+        states: { initialState: 'a' },
+        events: {
+          one: {
+            transition: { b: 'a' }
+          },
+
+          two: {
+            transition: { c: 'a' }
+          }
+        }
+      });
+
+      var a = def.lookupState('a');
+      var b = def.lookupState('b');
+
+      expect(a.enterTransitions.length).toBe(2);
+      expect(a.enterTransitions[0].fromState).toBe('b');
+      expect(a.enterTransitions[0].event).toBe('one');
+      expect(a.enterTransitions[1].fromState).toBe('c');
+      expect(a.enterTransitions[1].event).toBe('two');
+      expect(b.exitTransitions[0].toState).toBe('a');
+      expect(b.enterTransitions.length).toBe(0);
+    });
   });
 
   describe('Unwound transitions', function() {
@@ -328,33 +377,88 @@ describe('FSM.Definition', function() {
   describe('Public API', function() {
     var def = create({
       events: {
-        one: { transitions: { initialized: 'a' } },
-        two: { transitions: { a: 'b' } }
+        one: {
+          transitions: { initialized: 'a' }
+        },
+
+        two: {
+          transitions: { a: 'b' }
+        },
+
+        three: {
+          transitions: [
+            { b: 's1' },
+            { s1: 's1.sub1' },
+            { 's1.sub1': 's1.sub2' },
+            { 's1.sub2': 's1.sub2.sub1' },
+            { 'ns.s1': 'ns.s2' }
+          ]
+        }
       }
     });
 
     it('provides eventNames', function() {
-      expect(def.eventNames.length).toBe(2);
-      expect(def.eventNames).toContain('one', 'two');
+      expect(def.eventNames.length).toBe(3);
+      expect(def.eventNames).toContain('one', 'two', 'three');
     });
 
     it('provides events', function() {
-      expect(def.events.length).toBe(2);
-      expect(def.events.mapBy('name')).toContain('one', 'two');
+      expect(def.events.length).toBe(3);
+      expect(def.events.mapBy('name')).toContain('one', 'two', 'three');
     });
 
     it('provides stateNames', function() {
-      expect(def.stateNames.length).toBe(3);
-      expect(def.stateNames).toContain('initialized', 'a', 'b');
+      expect(def.stateNames.length).toBe(9);
+      expect(def.stateNames).toContain(
+        'initialized', 'a', 'b', 's1', 's1.sub1', 's1.sub2',
+        's1.sub2.sub1', 'ns.s1', 'ns.s2'
+      );
     });
 
     it('provides states', function() {
-      expect(def.states.length).toBe(3);
-      expect(def.states.mapBy('name')).toContain('initialized', 'a', 'b');
+      expect(def.states.length).toBe(9);
+      expect(def.states.mapBy('name')).toContain(
+        'initialized', 'a', 'b', 's1', 's1.sub1', 's1.sub2',
+        's1.sub2.sub1', 'ns.s1', 'ns.s2'
+      );
     });
 
-    it('can look up states by name', function() {
+    it('can look up a state by name', function() {
       expect(def.lookupState('a').name).toBe('a');
+    });
+
+    it('throws an error if requested to look up a state that doesn\'t exist', function() {
+      expect(function() {
+        def.lookupState('herp');
+      }).toThrowError(/is not defined/);
+    });
+
+    it('can look up states by prefix', function() {
+      var states = def.lookupStates('s1');
+      expect(states.length).toBe(4);
+    });
+
+    it('can look up states by namespace', function() {
+      var states = def.lookupStates('ns');
+      expect(states.length).toBe(2);
+    });
+
+    it('throws an error if requested to lookup a state or prefix with no result', function() {
+      expect(function() {
+        def.lookupStates('herp');
+      }).toThrowError(/no states or substates defined/);
+    });
+
+    it('knows that namespaces are not states', function() {
+      expect(function() {
+        def.lookupState('ns');
+      }).toThrowError(/is not defined/);
+    });
+
+    it('provides a list of state prefixes', function() {
+      expect(def.stateNamespaces).toContain(
+        's1', 's1.sub2', 'ns'
+      );
     });
 
     it('can look up events by name', function() {

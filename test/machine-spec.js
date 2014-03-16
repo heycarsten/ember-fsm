@@ -29,7 +29,7 @@ describe('FSM.Machine', function() {
       trip: {
         transitions: [
           { 'active.running': 'injured', doIf: 'atMaxSpeed' },
-          { $all: '$same' }
+          { 'active.running': 'inactive' }
         ]
       },
 
@@ -70,7 +70,7 @@ describe('FSM.Machine', function() {
     return create(definition);
   }
 
-  describe('Creation', function() {
+  describe('create', function() {
     it('adds a default error event and finished state if none is provided', function() {
       var fsm = create({
         events: {
@@ -127,12 +127,38 @@ describe('FSM.Machine', function() {
 
       fsm.set('atMaxSpeed', false);
 
-      expect(fsm.transitionFor('trip').toState).toBe('active.running');
+      expect(fsm.transitionFor('trip').toState).toBe('inactive');
     });
   });
 
-  describe('Boolean state accessors', function() {
-    it('can indicate the current state', function() {
+  describe('inState', function() {
+    it('throws an error if the passed state name does not exist', function() {
+      var fsm = createBasicMachine();
+
+      expect(function() {
+        fsm.inState('herp');
+      }).toThrowError(/no states or substates/);
+    });
+
+    it('returns true for namespace match', function() {
+      var fsm = createBasicMachine({
+        states: { initialState: 'active.running' }
+      });
+
+      expect(fsm.get('currentState')).toBe('active.running');
+      expect(fsm.inState('active')).toBe(true);
+      expect(fsm.inState('active.running')).toBe(true);
+      expect(fsm.inState('inactive')).toBe(false);
+    });
+
+    it('returns true for a state match', function() {
+      var fsm = createBasicMachine();
+      expect(fsm.inState('inactive')).toBe(true);
+    });
+  });
+
+  describe('is{{stateName}} accessors', function() {
+    it('returns true if it matches the current state', function() {
       var fsm = createBasicMachine();
 
       expect(fsm.get('currentState')).toBe('inactive');
@@ -140,15 +166,46 @@ describe('FSM.Machine', function() {
       expect(fsm.get('isActiveRunning')).toBe(false);
     });
 
-    it('can indicate the current state namespace', function() {
+    it('returns true if it matches the current state namespace', function() {
       var fsm = createBasicMachine();
 
-      //fsm.send('run');
+      fsm.set('currentState', 'active.running');
 
       expect(fsm.get('currentState')).toBe('active.running');
       expect(fsm.get('isActive')).toBe(true);
       expect(fsm.get('isActiveRunning')).toBe(true);
       expect(fsm.get('isInactive')).toBe(false);
     });
+
+    it('is invalidated when the current state changes', function() {
+      var fsm = createBasicMachine();
+      expect(fsm.get('isInactive')).toBe(true);
+
+      fsm.set('currentState', 'active.running');
+      expect(fsm.get('isInactive')).toBe(false);
+
+      fsm.set('currentState', 'inactive');
+      expect(fsm.get('isInactive')).toBe(true);
+    });
+  });
+
+  describe('canEnterState', function() {
+    it('returns true if the requested state can be entered from the current state on any event', function() {
+      var fsm = createBasicMachine();
+
+      expect(fsm.get('currentState')).toBe('inactive');
+
+      expect(fsm.canEnterState('active.running')).toBe(true);
+      expect(fsm.canEnterState('injured')).toBe(false);
+
+      fsm.set('currentState', 'active.running');
+      fsm.set('atMaxSpeed', true);
+
+      expect(fsm.canEnterState('injured')).toBe(true);
+    });
+  });
+
+  describe('send', function() {
+    
   });
 });

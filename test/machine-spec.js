@@ -133,17 +133,214 @@ describe('FSM.Machine', function() {
   });
 
   describe('send', function() {
-    var target = {
-      canDoThing: function() {
-        return true;
-      },
+    var makeSmoke;
+    var stopSmoke;
+    var startedUp;
+    var shutDown;
+    var throwError;
+    var goneBrokeDownResult;
+    var increaseWorkload;
+    var target;
+    var fsm;
 
-      yellAtWale: function() {
-      }
-    };
+    beforeEach(function() {
+      makeSmoke = sinon.spy(function() {
+        return 'blerp smoke';
+      });
 
-    describe('with provided target', function() {
+      stopSmoke = sinon.spy(function() {
+        return 'i yelling';
+      });
 
+      startedUp = sinon.spy(function() {
+        return 'started up';
+      });
+
+      shutDown = sinon.spy(function() {
+        return Em.RSVP.resolve('shut down');
+      });
+
+      throwError = sinon.spy(function() {
+        return Em.RSVP.reject('exploded');
+      });
+
+      increaseWorkload = sinon.spy(function() {
+        throw 'overheated';
+      });
+
+      target = Em.Object.create({
+        makeSmoke: makeSmoke,
+        stopSmoke: stopSmoke,
+        startedUp: startedUp,
+        shutDown: shutDown,
+        throwError: throwError,
+        increaseWorkload: increaseWorkload,
+        goneBrokeDown: function(transition) {
+          goneBrokeDownResult = transition;
+        }
+      });
+
+      fsm = createMachine({
+        target: target,
+
+        states: {
+          initialState: 'stopped',
+
+          running: {
+            didEnter: 'makeSmoke'
+          },
+
+          stopped: {
+            didEnter: 'stopSmoke'
+          },
+
+          failed: {
+            didEnter: 'goneBrokeDown'
+          }
+        },
+
+        events: {
+          start: {
+            transition: { stopped: 'running', after: 'startedUp' }
+          },
+
+          stop: {
+            transition: { running: 'stopped', after: 'shutDown' }
+          },
+
+          doMore: {
+            transition: {
+              running: '$same', action: 'increaseWorkload'
+            }
+          },
+
+          explode: {
+            transition: { running: 'stopped', before: 'throwError' }
+          }
+        }
+      });
+    });
+
+    it('runs the transition and all related callbacks', function(done) {
+      expect(fsm.get('currentState')).toBe('stopped');
+
+      fsm.send('start').then(function() {
+        var c0 = startedUp.getCall(0);
+        var a0 = c0.args[0];
+
+        var c1 = makeSmoke.getCall(0);
+        var a1 = c1.args[0];
+
+        expect(fsm.get('currentState')).toBe('running');
+
+        expect(startedUp.calledOnce).toBe(true);
+        expect(makeSmoke.calledOnce).toBe(true);
+
+        expect(c0.args.length).toBe(1);
+        expect(c1.args.length).toBe(1);
+
+        expect(a0.constructor).toBe(Em.FSM.Transition);
+        expect(a1.constructor).toBe(Em.FSM.Transition);
+
+        expect(a0.get('fromState')).toBe('stopped');
+        expect(a0.get('toState')).toBe('running');
+
+        done();
+      });
+    });
+
+    it('captures results in the transition', function(done) {
+      fsm.send('start').then(function(t) {
+        var resolutions;
+
+        expect(t.constructor).toBe(Em.FSM.Transition);
+
+        resolutions = t.get('resolutions');
+
+        expect(resolutions.afterEvent['transition:startedUp']).toBe('started up');
+        expect(resolutions.didEnter['state:makeSmoke']).toBe('blerp smoke');
+
+        done();
+      });
+    });
+
+    it('rejects when a callback fails', function(done) {
+      expect(fsm.get('isTransitioning')).toBe(false);
+      expect(fsm.get('activeTransitions.length')).toBe(0);
+
+      fsm.set('currentState', 'running');
+
+      fsm.send('doMore').catch(function(error) {
+        Em.run.next(function() {
+          var args = goneBrokeDownResult.get('eventArgs')[0];
+          expect(error).toBe('overheated');
+          expect(args.error).toBe('overheated');
+          expect(args.transition.get('fromState')).toBe('running');
+          expect(args.transition.get('toState')).toBe('running');
+          expect(args.transition.get('rejection')).toBe('overheated');
+          expect(fsm.get('isTransitioning')).toBe(false);
+          expect(fsm.get('currentState')).toBe('failed');
+          done();
+        });
+      });
+    });
+  });
+
+  describe('send (while active)', function() {
+    var fsm;
+
+    beforeEach(function() {
+      fsm = createMachine({
+        states: {
+          initialState: 'one',
+          knownStates: ['one', 'two', 'failed']
+        },
+
+        events: {
+          stay: {
+            transitions: { $same: '$same' }
+          },
+
+          next: {
+            transitions: [
+              { one: 'two' },
+              { two: 'two' }
+            ]
+          },
+
+          prev: {
+            transitions: [
+              { one: 'one' },
+              { two: 'one' }
+            ]
+          }
+        }
+      });
+    });
+
+    it('allows transitions to the same state', function(done) {
+      fsm.pushActiveTransition('t0');
+
+      expect(fsm.get('isTransitioning')).toBe(true);
+      expect(fsm.get('currentState')).toBe('one');
+
+      fsm.send('stay').then(function() {
+        Em.run.next(function() {
+          expect(fsm.get('isTransitioning')).toBe(true);
+          done();
+        });
+      });
+    });
+
+    it('does not allow transitions to other states', function() {
+      fsm.pushActiveTransition('t0');
+
+      expect(fsm.get('isTransitioning')).toBe(true);
+      expect(fsm.get('currentState')).toBe('one');
+
+      expect(function() {
+        fsm.send('next');
+      }).toThrowError(/unable to transition out of/);
     });
   });
 });

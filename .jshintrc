@@ -4,18 +4,15 @@
     "Ember",
     "describe",
     "it",
+    "expect",
     "beforeEach",
     "console",
     "require",
-    "equal",
-    "test",
-    "testBoth",
-    "testWithDefault",
-    "raises",
-    "deepEqual",
-    "strictEqual",
     "module",
-    "expect"
+    "createMachine",
+    "createBasicMachine",
+    "createCallbackMachine",
+    "sinon"
   ],
 
   "esnext": true,

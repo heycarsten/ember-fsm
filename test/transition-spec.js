@@ -26,7 +26,6 @@ describe('FSM.Transition', function() {
       expect(fsm.get('currentState')).toBe('okay');
       expect(t.callbacksFor('willEnter').length).toBe(0);
       expect(didEnterCbs.length).toBe(2);
-      expect(didEnterCbs.mapBy('fn')).toContain(fsm.playPurr, fsm.animateSmile);
     });
 
     it('throws an error when the callbacks have not been defined on target', function() {
@@ -114,7 +113,7 @@ describe('FSM.Transition', function() {
       t = fsm.transitionFor('wakeKitty');
 
       t.perform().catch(function() {
-        expect(t.get('rejections').didEnter).toBe('~_~');
+        expect(t.get('rejections').didEnter['state:stopAnimations']).toBe('~_~');
         expect(t.get('rejection')).toBe('~_~');
         done();
       });

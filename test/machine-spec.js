@@ -84,13 +84,13 @@ describe('FSM.Machine', function() {
     });
   });
 
-  describe('is{{stateName}} accessors', function() {
+  describe('isIn{{stateName}} accessors', function() {
     it('returns true if it matches the current state', function() {
       var fsm = createBasicMachine();
 
       expect(fsm.get('currentState')).toBe('inactive');
-      expect(fsm.get('isInactive')).toBe(true);
-      expect(fsm.get('isActiveRunning')).toBe(false);
+      expect(fsm.get('isInInactive')).toBe(true);
+      expect(fsm.get('isInActiveRunning')).toBe(false);
     });
 
     it('returns true if it matches the current state namespace', function() {
@@ -99,20 +99,20 @@ describe('FSM.Machine', function() {
       fsm.set('currentState', 'active.running');
 
       expect(fsm.get('currentState')).toBe('active.running');
-      expect(fsm.get('isActive')).toBe(true);
-      expect(fsm.get('isActiveRunning')).toBe(true);
-      expect(fsm.get('isInactive')).toBe(false);
+      expect(fsm.get('isInActive')).toBe(true);
+      expect(fsm.get('isInActiveRunning')).toBe(true);
+      expect(fsm.get('isInInactive')).toBe(false);
     });
 
     it('is invalidated when the current state changes', function() {
       var fsm = createBasicMachine();
-      expect(fsm.get('isInactive')).toBe(true);
+      expect(fsm.get('isInInactive')).toBe(true);
 
       fsm.set('currentState', 'active.running');
-      expect(fsm.get('isInactive')).toBe(false);
+      expect(fsm.get('isInInactive')).toBe(false);
 
       fsm.set('currentState', 'inactive');
-      expect(fsm.get('isInactive')).toBe(true);
+      expect(fsm.get('isInInactive')).toBe(true);
     });
   });
 

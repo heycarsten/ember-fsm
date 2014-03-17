@@ -91,6 +91,29 @@ describe('FSM.Definition', function() {
     });
   });
 
+  describe('Compling states', function() {
+    it('tracks callbacks', function() {
+      var def = create({
+        states: {
+          initialized: {
+            willEnter: 'barkLikeDog',
+            willExit:  ['sadface', 'eatMemory']
+          }
+        },
+        events: {
+          run: {
+            transitions: { initialized: 'hihihi' }
+          }
+        }
+      });
+
+      var s = def.lookupState('initialized');
+
+      expect(s.willEnter).toContain('barkLikeDog');
+      expect(s.willExit).toContain('sadface', 'eatMemory');
+    });
+  });
+
   describe('Compiling transitions', function() {
     it('aliases transition to transitions', function() {
       var def = create({
@@ -154,7 +177,7 @@ describe('FSM.Definition', function() {
         },
         events: {
           one: { transition: { $initial: 'a' } },
-          two: { transition: { a: '$initial' } }
+          two: { transition: { a: '$initial', willEnter: 'waveHello' } }
         }
       });
 
@@ -166,6 +189,7 @@ describe('FSM.Definition', function() {
       expect(t0[0].toState).toBe('a');
       expect(t1.length).toBe(1);
       expect(t1[0].toState).toBe('initialized');
+      expect(t1[0].willEnter).toContain('waveHello');
       expect(s.willEnter.length).toBe(1);
       expect(s.willEnter[0]).toBe('sayHello');
     });

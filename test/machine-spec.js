@@ -1,78 +1,7 @@
 describe('FSM.Machine', function() {
-  function create(args) {
-    return Ember.FSM.Machine.create(args);
-  }
-
-  function createBasicMachine(opts) {
-    var states;
-    var events;
-    var mixins;
-    var definition;
-
-    if (!opts) {
-      opts = {};
-    }
-
-    states = {
-      initialState: 'inactive'
-    };
-
-    events = {
-      run: {
-        transitions: { $all: 'active.running' }
-      },
-
-      walk: {
-        transitions: { $all: 'active.walking' }
-      },
-
-      trip: {
-        transitions: [
-          { 'active.running': 'injured', doIf: 'atMaxSpeed' },
-          { 'active.running': 'inactive' }
-        ]
-      },
-
-      reset: {
-        transition: { $all: 'inactive' }
-      },
-
-      slowDown: {
-        transitions: [
-          { 'active.running': 'active.walking' },
-          { 'active.walking': 'inactive' },
-          { inactive:         '$same' }
-        ]
-      }
-    };
-
-    mixins = {
-      atMaxSpeed: false
-    };
-
-    if (opts.states) {
-      Em.$.extend(states, opts.states);
-    }
-
-    if (opts.events) {
-      Em.$.extend(events, opts.events);
-    }
-
-    definition = {
-      states: states,
-      events: events
-    };
-
-    if (opts.mixins) {
-      Em.$.extend(definition, opts.mixins);
-    }
-
-    return create(definition);
-  }
-
   describe('create', function() {
     it('adds a default error event and finished state if none is provided', function() {
-      var fsm = create({
+      var fsm = createMachine({
         events: {
           one: { transitions: { initialized: 'a' } }
         }
@@ -83,7 +12,7 @@ describe('FSM.Machine', function() {
     });
 
     it('does not add default error event if one is provided by the user', function() {
-      var fsm = create({
+      var fsm = createMachine({
         events: {
           one: { transition: { initialized: 'a' } },
           error: { transition: { a: 'broken' } }
@@ -94,7 +23,7 @@ describe('FSM.Machine', function() {
     });
 
     it('sets the currentState to the initialState', function() {
-      var fsm = create({
+      var fsm = createMachine({
         states: { initialState: 'ready' },
         events: { one: { transition: { ready: 'a' } } }
       });
@@ -117,9 +46,7 @@ describe('FSM.Machine', function() {
         states: {
           initialState: 'active.running'
         },
-        mixins: {
-          atMaxSpeed: true
-        }
+        atMaxSpeed: true
       });
 
       expect(fsm.get('currentState')).toBe('active.running');
@@ -206,6 +133,17 @@ describe('FSM.Machine', function() {
   });
 
   describe('send', function() {
-    
+    var target = {
+      canDoThing: function() {
+        return true;
+      },
+
+      yellAtWale: function() {
+      }
+    };
+
+    describe('with provided target', function() {
+
+    });
   });
 });

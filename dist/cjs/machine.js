@@ -1,44 +1,43 @@
 "use strict";
 var Ember = require("ember")["default"] || require("ember");
-var required = require("ember").required;
 var computed = require("ember").computed;
 var typeOf = require("ember").typeOf;
 var inspect = require("ember").inspect;
+var on = require("ember").on;
 var capitalCamelize = require("./utils").capitalCamelize;
 var Transition = require("./transition")["default"] || require("./transition");
-
-var STATE_MACROS;
-var ALL_MACRO;
-var INITIAL_MACRO;
-
-STATE_MACROS = [
-  ALL_MACRO     = '$all',
-  INITIAL_MACRO = '$initial'
-];
+var Definition = require("./definition")["default"] || require("./definition");
 
 exports["default"] = Ember.Object.extend({
-  initialState:      'initialized',
-  isTransitioning:   computed.bool('activeTransitions.length'),
-  stateEvents:       null,
+  isTransitioning:   false,
+  events:            null,
+  states:            null,
   activeTransitions: null,
   currentState:      null,
 
-  target: computed(function(key, value) {
-    return arguments.length === 1 ? this : value;
-  }),
-
   init: function() {
-    this._transitions_ = {};
-    if (!this.get('stateEvents')) {
-      throw new Ember.Error(
-        'No stateEvents were specified, a state machine can not function ' +
-        'without state, COMMON.'
-      );
+    var target = this.get('target');
+    var events = this.get('events');
+    var states = this.get('states');
+
+    if (!target) {
+      this.set('target', this);
     }
+
+    if (!events.error) {
+      events.error = { transition: { $all: 'failed' } };
+    }
+
     this.set('activeTransitions', []);
-    this._load_();
-    this.set('currentState', this.get('initialState'));
-    this._installBooleanStateAccessors_();
+
+    this.definition = new Definition({
+      states: states,
+      events: events
+    });
+
+    this.set('stateNames',   this.definition.stateNames);
+    this.set('eventNames',   this.definition.eventNames);
+    this.set('currentState', this.definition.initialState);
   },
 
   send: function(event) {
@@ -50,7 +49,7 @@ exports["default"] = Ember.Object.extend({
 
     if (!this.get('eventNames').contains(event)) {
       throw new Ember.Error(
-        'unknown state event ' + inspect(event) + ' try one of [' +
+        'unknown state event "' + event + '" try one of [' +
         this.get('eventNames').join(', ') + ']'
       );
     }
@@ -60,9 +59,9 @@ exports["default"] = Ember.Object.extend({
 
     if (this.get('isTransitioning') && !sameState) {
       throw new Ember.Error(
-        'unable to transition out of ' + this.get('currentState') + ' state ' +
-        'while transitions are active: ' +
-        inspect(this.get('activeTransitions'))
+        'unable to transition out of "' + this.get('currentState') + '" ' +
+        'state to "' + transition.toState + '" state while transitions are ' +
+        'active: ' + inspect(this.get('activeTransitions'))
       );
     }
 
@@ -71,287 +70,193 @@ exports["default"] = Ember.Object.extend({
     promise = transition.perform();
 
     promise.catch(function(error) {
-      fsm.send('error', error);
+      fsm.abortActiveTransitions();
+      fsm.send('error', {
+        error: error,
+        transition: transition
+      });
     });
 
     promise.finally(function() {
       fsm.removeActiveTransition(transition);
     });
 
-    return transition;
+    return promise;
+  },
+
+  abortActiveTransition: function(transition) {
+    if (this.hasActiveTransition(transition)) {
+      transition.abort();
+      this.removeActiveTransition(transition);
+    }
+  },
+
+  hasActiveTransition: function(transition) {
+    return this.get('activeTransitions').contains(transition);
+  },
+
+  abortActiveTransitions: function() {
+    var activeTransitions = this.get('activeTransitions');
+
+    while (activeTransitions.length) {
+      activeTransitions.popObject().abort();
+    }
+
+    this.set('isTransitioning', false);
   },
 
   pushActiveTransition: function(transition) {
-    this.get('activeTransitions').pushObject(transition);
+    var activeTransitions = this.get('activeTransitions');
+
+    activeTransitions.pushObject(transition);
+
+    if (activeTransitions.get('length')) {
+      this.set('isTransitioning', true);
+    }
   },
 
   removeActiveTransition: function(transition) {
-    this.get('activeTransitions').removeObject(transition);
+    var activeTransitions = this.get('activeTransitions');
+
+    activeTransitions.removeObject(transition);
+
+    if (!activeTransitions.get('length')) {
+      this.set('isTransitioning', false);
+    }
   },
 
-  stateMapsFor: function(event) {
-    var defs = this._transitions_[event];
-    var maps = [];
-
-    defs.forEach(function(def) {
-      var map = {};
-      var macro;
-      var fromStates;
-
-      if (macro = def.fromStatesMacro) {
-        if (macro === ALL_MACRO) {
-          fromStates = [this.get('initialState')];
-        } else if (macro === INITIAL_MACRO) {
-          fromStates = this.get('stateNames');
-        } else {
-          throw new Ember.Error('unknown state macro: ' + inspect(macro));
-        }
-      } else {
-        fromStates = def.fromStates;
-      }
-
-      fromStates.forEach(function(fromState) {
-        var copy = {};
-        var key;
-
-        for (key in def) {
-          copy[key] = def[key];
-        }
-
-        copy.fromState = fromState;
-        copy.event     = event;
-
-        delete copy.fromStatesMacro;
-        delete copy.fromStates;
-
-        map[fromState] = copy;
-      });
-
-      maps.push(map);
-    }, this);
-
-    return maps;
-  },
-
-  checkGuard: function(guardProperty, inverse) {
-    var target = this.get('target');
-    var guardValue;
-    var guardTarget;
+  checkGuard: function(guardProperty, isInverse) {
+    var target     = this.get('target');
+    var guardValue = target.get(guardProperty);
     var result;
 
-    if ((guardValue = this.get(guardProperty))) {
-      guardTarget = this;
-    } else if ((guardValue = target.get(guardProperty))) {
-      guardTarget = target;
+    if (guardValue === undefined) {
+      throw new Error('expected guard "' + guardProperty + '" on target "' +
+      target + '" to be defined');
+    } else if (typeOf(guardValue) === 'function') {
+      result = guardValue.call(this) ? true : false;
     } else {
-      return inverse ? false : true;
+      result = guardValue ? true : false;
     }
 
-    if (typeOf(guardValue) === 'function') {
-      result = guardValue.call(guardTarget, this) ? true : false;
-    } else {
-      result = guardValue;
+    return isInverse ? !result : result;
+  },
+
+  outcomeOfPotentialTransitions: function(potentials) {
+    var target = this.get('target');
+    var potential;
+    var outcomeParams;
+    var i;
+
+    if (!potentials.length) {
+      return null;
     }
 
-    return inverse ? !result : result;
+    for (i = 0; i < potentials.length; i++) {
+      potential = potentials[i];
+
+      if (!potential.isGuarded) {
+        outcomeParams = potential;
+        break;
+      }
+
+      if (potential.doIf && this.checkGuard(potential.doIf)) {
+        outcomeParams = potential;
+        break;
+      }
+
+      if (potential.doUnless && this.checkGuard(potential.doUnless, true)) {
+        outcomeParams = potential;
+        break;
+      }
+    }
+
+    if (!outcomeParams) {
+      return null;
+    }
+
+    outcomeParams.machine = this;
+    outcomeParams.target  = target;
+
+    return outcomeParams;
   },
 
   transitionFor: function(event, args) {
     var currentState = this.get('currentState');
-    var stateMaps    = this.stateMapsFor(event);
-    var hadGuard     = false;
-    var guardValue;
-    var inverse;
-    var params;
-    var iterParams;
-    var i;
+    var potentials   = this.definition.transitionsFor(event, currentState);
+    var transitionParams;
 
-    for (i = 0; i < stateMaps.length; i++) {
-      iterParams = stateMaps[i][currentState];
-
-      if (!iterParams) {
-        continue;
-      }
-
-      if ((guardValue = iterParams['if'])) {
-        inverse  = false;
-        hadGuard = true;
-      } else if ((guardValue = iterParams.unless)) {
-        inverse  = true;
-        hadGuard = true;
-      }
-
-      if (guardValue) {
-        if (this.checkGuard(guardValue, inverse)) {
-          params = iterParams;
-          break;
-        } else {
-          continue;
-        }
-      }
-
-      params = iterParams;
-      break;
+    if (!potentials.length) {
+      throw new Ember.Error('no transition is defined for event "' + event +
+      '" in state "' + currentState + '"');
     }
 
-    if (!params) {
-      throw new Ember.Error('no ' + (hadGuard ? 'unguarded ' : '')  +
-      'transition was defined for event ' + event + ' in state ' +
-      currentState);
+    transitionParams = this.outcomeOfPotentialTransitions(potentials);
+
+    if (!transitionParams) {
+      throw new Ember.Error('no unguarded transition was resolved for event "' +
+      event + '" in state "' + currentState + '"');
     }
 
-    params.fsm       = this;
-    params.eventArgs = args;
+    transitionParams.eventArgs = args;
 
-    return Transition.create(params);
+    return Transition.create(transitionParams);
   },
 
-  inState: function(state) {
-    var currentState = this.get('currentState');
+  inState: function(stateOrPrefix) {
+    var currentState = this.definition.lookupState(this.get('currentState'));
+    var states       = this.definition.lookupStates(stateOrPrefix);
 
-    if (currentState === state) {
-      return true;
-    }
+    return states.contains(currentState);
+  },
 
-    if (currentState.slice(0, state.length) === state) {
-      return true;
-    }
+  canEnterState: function(state) {
+    var currentState = this.definition.lookupState(this.get('currentState'));
+    var potentials;
 
-    return false;
+    potentials = currentState.exitTransitions.filter(function(t) {
+      return t.toState === state;
+    });
+
+    return this.outcomeOfPotentialTransitions(potentials) ? true : false;
   },
 
   _setNewState_: function(transition) {
     this.set('currentState', transition.get('toState'));
   },
 
-  _normalizeTransitionDefinition: function(params) {
-    var defn      = {};
-    var fromState = params.from;
-    var toState   = params.to;
-
-    if (!fromState || !toState) {
-      throw new Ember.Error(
-        'transition needs to specify both a from state and a to state: ' +
-        Ember.inspect(params)
-      );
-    }
-
-    if (STATE_MACROS.contains(fromState)) {
-      defn.fromStatesMacro = fromState;
-    } else if (typeOf(fromState) === 'array') {
-      defn.fromStates = fromState;
-    } else {
-      defn.fromStates = [fromState];
-    }
-
-    defn.toState = toState;
-    defn['if']   = params['if'];
-    defn.unless  = params.unless;
-
-    defn.userCallbacks = {
-      beforeEvent:    params.before || params.beforeEvent,
-      willExitState:  params.willExit || params.willExitState,
-      willEnterState: params.willEnter || params.willEnterState,
-      didExitState:   params.didExit || params.didExitState,
-      didEnterState:  params.action || params.actions || params.didEnter || params.didEnterState,
-      afterEvent:     params.after || params.afterEvent
-    };
-
-    return defn;
-  },
-
-  _normalizeTransitionPayload: function(payload) {
-    var defs = [];
-    var fromState;
-    var toState;
-
-    if (typeOf(payload) === 'array') {
-      payload.forEach(function(params) {
-        defs.push(this._normalizeTransitionDefinition(params));
-      }, this);
-    } else if (typeOf(payload) === 'object') {
-      for (fromState in payload) {
-        toState = payload[fromState];
-        defs.push(this._normalizeTransitionDefinition({
-          from: fromState,
-          to: toState
-        }));
-      }
-    } else {
-      throw new Ember.Error('transitions must be an object or an array');
-    }
-
-    return defs;
-  },
-
-  _load_: function() {
-    var definition = this.get('stateEvents');
-    var eventNames = [];
-    var stateNames = [];
-    var eventName;
-    var eventPayload;
-    var transPayload;
-    var transDefs;
+  _setupIsStateAccessors: on('init', function() {
+    var mixin = {};
+    var prefixes = this.definition.stateNamespaces.slice(0);
+    var properties = [];
+    var prefix;
     var i;
 
-    definition.error = { transitions: { $all: 'failed' } };
+    function addAccessor(prefix) {
+      var property = ('isIn' + capitalCamelize(prefix));
 
-    for (eventName in definition) {
-      eventPayload = definition[eventName];
-      transPayload = (eventPayload.transitions || eventPayload.transition);
-      transDefs    = this._normalizeTransitionPayload(transPayload);
+      properties.push(property);
 
-      eventNames.push(eventName);
-      this._transitions_[eventName] = transDefs;
-
-      for (i = 0; i < transDefs.length; i++) {
-        if (transDefs[i].fromStates) {
-          stateNames.addObjects(transDefs[i].fromStates);
-        }
-
-        stateNames.addObject(transDefs[i].toState);
-      }
-    }
-
-    this.set('stateNames', stateNames);
-    this.set('eventNames', eventNames);
-  },
-
-  _installBooleanStateAccessors_: function() {
-    var mixin  = {};
-    var states = this.get('stateNames');
-    var key;
-    var accessorProperties = [];
-
-    states.forEach(function(state) {
-      var parts = state.split('.');
-
-      if (parts.length > 1) {
-        parts.forEach(function(part, index) {
-          var substate;
-
-          if (index === parts.length) {
-            return;
-          }
-
-          substate = parts.slice(0, index).join('.');
-
-          mixin['is' + capitalCamelize(substate)] = computed(function() {
-            return this.inState(substate);
-          }).property(state);
-        });
-      }
-
-      mixin['is' + capitalCamelize(state)] = computed(function() {
-        return this.inState(state);
+      mixin[property] = computed(function() {
+        return this.inState(prefix);
       }).property('currentState');
-    }, this);
-
-    for (key in mixin) {
-      accessorProperties.push(key);
     }
 
-    this._booleanStateAccessors_ = accessorProperties;
+    for (i = 0; i < this.definition.stateNames.length; i++) {
+      prefix = this.definition.stateNames[i];
+
+      if (prefixes.indexOf(prefix) !== -1) {
+        continue;
+      }
+
+      prefixes.push(prefix);
+    }
+
+    for (i = 0; i < prefixes.length; i++) {
+      addAccessor(prefixes[i]);
+    }
+
+    this.isInStateAccessorProperties = properties;
     this.reopen(mixin);
-  }
+  })
 });

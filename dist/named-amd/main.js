@@ -1,14 +1,15 @@
-define("ember-fsm/machine-definition",
+define("ember-fsm/definition",
   ["./utils","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
     var ownPropertiesOf = __dependency1__.ownPropertiesOf;
     var toArray = __dependency1__.toArray;
 
-    __exports__["default"] = MachineDefinition;
+    __exports__["default"] = Definition;
 
     var ALL_MACRO      = '$all';
     var SAME_MACRO     = '$same';
+    var INITIAL_MACRO  = '$initial';
     var INITIALIZED    = 'initialized';
     var TRANSITIONS    = ['transition', 'transitions'];
     var INITIAL_STATES = ['initialState'];
@@ -16,9 +17,9 @@ define("ember-fsm/machine-definition",
     var BEFORES        = ['before', 'beforeEvent'];
     var AFTERS         = ['after', 'afterEvent'];
     var WILL_ENTERS    = ['willEnter'];
-    var DID_ENTERS     = ['didEnter'];
+    var DID_ENTERS     = ['didEnter', 'enter', 'action'];
     var WILL_EXITS     = ['willExit'];
-    var DID_EXITS      = ['didExit'];
+    var DID_EXITS      = ['didExit', 'exit'];
     var DO_IFS         = ['doIf', 'runIf', 'guard'];
     var DO_UNLESSES    = ['doUnless', 'runUnless', 'unless'];
     var FROMS          = ['from', 'fromState', 'fromStates'];
@@ -56,10 +57,10 @@ define("ember-fsm/machine-definition",
       ]
     };
 
-    function MachineDefinition(payload) {
-      if (!(this instanceof MachineDefinition)) {
+    function Definition(payload) {
+      if (!(this instanceof Definition)) {
         throw new TypeError('please use the "new" operator to construct a ' +
-        'MachineDefinition instance');
+        'Definition instance');
       }
 
       if (typeof payload !== 'object') {
@@ -79,23 +80,22 @@ define("ember-fsm/machine-definition",
         throw new TypeError('"states" must be an object');
       }
 
-      this._payload      = payload;
-      this._statesByName = {};
-      this._eventsByName = {};
-      this._stateConf    = {};
+      this._payload = payload;
+      this._statesDef = destructDefinition(payload.states || {}, 'states');
+      this._stateByName = {};
+      this._statesByPrefix = {};
+      this._eventByName = {};
+      this._transitionsByEvent = {};
+      this._transitionsByEventFromState = {};
 
-      if (payload.states) {
-        this._stateConf = destructDefinition(payload.states, 'states');
-      } else {
-        this._stateConf = {};
-      }
-
-      this.isExplicit   = false;
-      this.initialState = INITIALIZED || this._stateConf.initialState;
-      this.states       = [];
-      this.stateNames   = [];
-      this.events       = [];
-      this.transitions  = [];
+      this.isExplicit      = false;
+      this.initialState    = this._statesDef.initialState || INITIALIZED;
+      this.states          = [];
+      this.stateNames      = [];
+      this.stateNamespaces = [];
+      this.events          = [];
+      this.eventNames      = [];
+      this.transitions     = [];
 
       this._compile();
     }
@@ -124,8 +124,7 @@ define("ember-fsm/machine-definition",
       var aliases;
       var makeArray;
       var value;
-      var i;
-      var j;
+      var i, j;
 
       if (!payload) {
         throw new TypeError('Expected payload object');
@@ -162,12 +161,12 @@ define("ember-fsm/machine-definition",
     function allocState(name, payload) {
       var state = {
         name: name,
-        fromTransitions: [],
-        toTransitions: [],
-        willEnter: null,
-        didEnter: null,
-        willExit: null,
-        didExit: null
+        willEnter: [],
+        didEnter: [],
+        willExit: [],
+        didExit: [],
+        exitTransitions: [],
+        enterTransitions: []
       };
 
       updateState(state, payload);
@@ -193,29 +192,26 @@ define("ember-fsm/machine-definition",
     }
 
     function allocEvent(name, payload) {
-      var event = {
+      var definition = destructDefinition(payload, 'event');
+      var woundTransitions = definition.transitions;
+      var i;
+      var event;
+
+      event = {
         name: name,
-        transitions: []
+        _woundTransitions: []
       };
 
-      updateEvent(event, payload);
-
-      return event;
-    }
-
-    function updateEvent(event, payload) {
-      var definition  = destructDefinition(payload, 'event');
-      var transitions = definition.transitions;
-      var i;
-
-      for (i = 0; i < transitions.length; i++) {
-        event.transitions.push(allocEventTransition(event, transitions[i]));
+      for (i = 0; i < woundTransitions.length; i++) {
+        event._woundTransitions.push(
+          allocWoundTransition(event, woundTransitions[i])
+        );
       }
 
       return event;
     }
 
-    function allocEventTransition(event, payload) {
+    function allocWoundTransition(event, payload) {
       var def  = destructDefinition(payload, 'transition');
       var data = ownPropertiesOf(payload);
       var fromToSpecifiedByName;
@@ -235,9 +231,9 @@ define("ember-fsm/machine-definition",
       }
 
       if (fromToSpecifiedByKVP && data.length > 1) {
-        throw new Error('You can only have one fromState: "toState" pair per ' +
-        'transition. Consider using the from: ["states"], to: "state" form ' +
-        'instead');
+        throw new Error('only one { fromState: "toState" } pair can be ' +
+        'specified per transition: specify multiple event transitions as an ' +
+        'array of objects with one { fromState: \'toState\' } per object.');
       }
 
       if (fromToSpecifiedByKVP) {
@@ -245,57 +241,163 @@ define("ember-fsm/machine-definition",
         def.toState    = payload[data[0]];
       }
 
+      def.isGuarded = (def.doIf || def.doUnless) ? true : false;
+
       return def;
     }
 
-    MachineDefinition.prototype = {
+    Definition.prototype = {
       lookupState: function(name) {
-        return this._statesByName[name];
+        var found;
+
+        if (name === INITIAL_MACRO) {
+          name = this.initialState;
+        }
+
+        if ((found = this._stateByName[name])) {
+          return found;
+        }
+
+        throw new Error('the state "' + name + '" is not defined, the defined ' +
+        'states are: ' + this.stateNames.join(', '));
       },
 
-      _compileStates: function() {
+      // Returns all states matching the given prefix
+      lookupStates: function(prefix) {
+        var found = [];
+        var state = this._stateByName[prefix];
+        var substates = this._statesByPrefix[prefix];
+        var i;
+
+        if (state) {
+          found.push(state);
+        }
+
+        if (substates) {
+          for (i = 0; i < substates.length; i++) {
+            found.push(substates[i]);
+          }
+        }
+
+        if (!found.length) {
+          throw new Error('there are no states or substates defined matching ' +
+          'the prefix: "' + prefix + '"');
+        }
+
+        return found;
+      },
+
+      lookupEvent: function(name) {
+        return this._eventByName[name];
+      },
+
+      transitionsFor: function(event, fromState) {
+        var _this = this;
+
+        if (fromState === INITIAL_MACRO) {
+          fromState = this.initialState;
+        }
+
+        function fetch(name, key) {
+          var found;
+
+          if ((found = _this[name][key])) {
+            return found;
+          } else {
+            _this[name][key] = [];
+            return _this[name][key];
+          }
+        }
+
+        if (event && fromState) {
+          return fetch('_transitionsByEventFromState', event + ':' + fromState);
+        } else if (event) {
+          return fetch('_transitionsByEvent', event);
+        }
+
+        return [];
+      },
+
+      _compileStatesDefinition: function() {
         this._allocateExplicitStates();
         this._applyStateDefinitions();
       },
 
       _allocateExplicitStates: function() {
-        var states = this._stateConf.knownStates;
+        var states = this._statesDef.knownStates;
         var i;
-        var stateName;
 
-        if (!states) {
+        if (!states.length) {
           return;
         }
 
         this.isExplicit = true;
 
+        if (!this._statesDef.initialState && !states.contains(this.initialState)) {
+          throw new Error('an explicit list of known states was defined but it ' +
+          'does not contain the default initial state "' + this.initialState +
+          '", either change initialState or include "' + this.initialState + '" ' +
+          'in the list of known states');
+        }
+
+        this._allocateState(this.initialState);
+
         for (i = 0; i < states.length; i++) {
-          stateName = states[i];
-          this.stateNames.push(stateName);
-          this._allocState(stateName);
+          this._allocateState(states[i]);
         }
       },
 
       _applyStateDefinitions: function() {
         var payload = this._payload.states;
+        var key;
         var stateName;
 
-        for (stateName in payload) {
-          this._updateState(stateName, payload[stateName]);
+        for (key in payload) {
+          if (key === INITIAL_MACRO) {
+            stateName = this.initialState;
+          } else {
+            stateName = key;
+          }
+
+          this._updateState(stateName, payload[key]);
         }
       },
 
-      _allocState: function(name, def) {
+      _allocateState: function(name, payload) {
         var state;
+        var parts;
+        var subparts;
+        var prefix;
+        var i;
 
-        if (this.lookupState(name)) {
-          throw new Error('state ' + name + ' has already been allocated');
+        if (state = this._stateByName[name]) {
+          return state;
         }
 
-        state = allocState(name, def);
+        state = allocState(name, payload);
+        parts = name.split('.');
 
         this.states.push(state);
-        this._statesByName[name] = state;
+        this._stateByName[name] = state;
+        this.stateNames.push(name);
+
+        if (parts.length > 1) {
+          subparts = parts.slice(0, -1);
+
+          for (i = 0; i < subparts.length; i++) {
+            prefix = subparts.slice(0, i + 1).join('.');
+
+            if (!this._statesByPrefix[prefix]) {
+              this._statesByPrefix[prefix] = [];
+            }
+
+            if (this.stateNamespaces.indexOf(prefix) === -1) {
+              this.stateNamespaces.push(prefix);
+            }
+
+            this._statesByPrefix[prefix].push(state);
+          }
+        }
 
         return state;
       },
@@ -303,7 +405,7 @@ define("ember-fsm/machine-definition",
       _updateState: function(name, payload) {
         var found;
 
-        if ((found = this.lookupState(name))) {
+        if ((found = this._stateByName[name])) {
           return updateState(found, payload);
         }
 
@@ -312,81 +414,92 @@ define("ember-fsm/machine-definition",
           'list of known states');
         }
 
-        return this._allocState(name, payload);
+        return this._allocateState(name, payload);
       },
 
-      _compileEvents: function() {
+      _compileEventDefinitions: function() {
         var payload = this._payload.events;
         var eventName;
 
-        console.log(payload);
-
         for (eventName in payload) {
-          this._compileEvent(eventName, payload[eventName]);
+          this._compileEventDefinition(eventName, payload[eventName]);
         }
 
         if (!this.events.length) {
           throw new Error('no events specified, at least one event must be ' +
-          'specified');
+          'specified to compile the state machine, COMMON!');
         }
       },
 
-      _compileEvent: function(name, payload) {
-        var event = this._allocEvent(name, payload);
+      _compileEventDefinition: function(name, payload) {
+        var event = this._allocateEvent(name, payload);
         this.events.push(event);
-        this._eventsByName[name] = event;
+        this.eventNames.push(name);
+        this._eventByName[name] = event;
       },
 
-      _allocEvent: function(name, payload) {
+      _allocateEvent: function(name, payload) {
         return allocEvent(name, payload);
       },
 
-      _unwindTransitions: function() {
-        var i;
-        var j;
-        var k;
-        var event;
-        var transition;
-        var fromState;
+      _extractStatesFromTransitions: function() {
         var set = {};
         var implicitStates;
         var explicitState;
+        var woundTransitions;
+        var woundTransition;
+        var fromState;
+        var i, j, k;
 
         function addState(stateName) {
           set[stateName] = stateName;
         }
 
         for (i = 0; i < this.events.length; i++) {
-          event = this.events[i];
+          woundTransitions = this.events[i]._woundTransitions;
 
-          for (j = 0; j < event.transitions.length; j++) {
-            transition = event.transitions[j];
+          for (j = 0; j < woundTransitions.length; j++) {
+            woundTransition = woundTransitions[j];
 
-            if (transition.toState === SAME_MACRO) {
+            if (woundTransition.toState === SAME_MACRO) {
               continue;
-            } else {
-              this._updateState(transition.toState);
-              addState(transition.toState);
             }
 
-            for (k = 0; k < transition.fromStates.length; k++) {
-              fromState = transition.fromStates[k];
+            if (woundTransition.toState === INITIAL_MACRO) {
+              woundTransition.toState = this.initialState;
+            }
+
+            this._updateState(woundTransition.toState);
+            addState(woundTransition.toState);
+
+            for (k = 0; k < woundTransition.fromStates.length; k++) {
+              fromState = woundTransition.fromStates[k];
 
               if (fromState === ALL_MACRO) {
                 continue;
-              } else {
-                this._updateState(fromState);
-                addState(fromState);
               }
+
+              if (fromState === INITIAL_MACRO) {
+                fromState = this.initialState;
+                woundTransition.fromStates[k] = fromState;
+              }
+
+              this._updateState(fromState);
+              addState(fromState);
             }
           }
+        }
+
+        implicitStates = ownPropertiesOf(set);
+
+        if (!implicitStates.contains(this.initialState)) {
+          throw new Error('initial state "' + this.initialState + '" is not ' +
+          'specified in any transitions');
         }
 
         if (!this.isExplicit) {
           return;
         }
-
-        implicitStates = ownPropertiesOf(set);
 
         for (i = 0; i < this.stateNames.length; i++) {
           explicitState = this.stateNames[i];
@@ -398,69 +511,135 @@ define("ember-fsm/machine-definition",
         }
       },
 
-      _allocTransition: function(payload) {
+      _unwindTransitions: function() {
+        var woundTransitions;
+        var woundTransition;
+        var fromStates;
+        var event;
+        var eventName;
+        var unwoundTransition;
+        var fromState;
+        var unguardedStatesSet;
+        var toState;
+        var key;
+        var i, j, k;
 
-      },
+        function incrUngardedState(name) {
+          if (unguardedStatesSet[name] === undefined) {
+            unguardedStatesSet[name] = 1;
+          } else {
+            unguardedStatesSet[name] += 1;
+          }
+        }
 
-      _unwindTransition: function(transition) {
-        allocTransition()
-      },
+        for (i = 0; i < this.events.length; i++) {
+          event              = this.events[i];
+          eventName          = event.name;
+          woundTransitions   = event._woundTransitions;
+          unguardedStatesSet = {};
 
-      _runAfterCompile: function() {
-        this.stateNames = ownPropertiesOf(this._statesByName);
+          for (j = 0; j < woundTransitions.length; j++) {
+            woundTransition   = woundTransitions[j];
+            fromStates        = woundTransition.fromStates;
+
+            if (fromStates.contains(ALL_MACRO) || fromStates.contains(SAME_MACRO)) {
+              fromStates = this.stateNames;
+            }
+
+            for (k = 0; k < fromStates.length; k++) {
+              fromState = this._stateByName[fromStates[k]];
+              unwoundTransition = {};
+
+              if (!woundTransition.isGuarded) {
+                incrUngardedState(fromState.name);
+              }
+
+              if (!woundTransition.isGuarded && unguardedStatesSet[fromState.name] > 1) {
+                throw new Error('you specified to transition from the "' +
+                fromState.name + '" state in more than one transition for the "' +
+                eventName + '" event');
+              }
+
+              if (woundTransition.toState === SAME_MACRO) {
+                toState = fromState;
+              } else {
+                toState = this._stateByName[woundTransition.toState];
+              }
+
+              for (key in woundTransition) {
+                if (key === 'fromStates') {
+                  continue;
+                }
+
+                unwoundTransition[key] = woundTransition[key];
+              }
+
+              unwoundTransition.event     = eventName;
+              unwoundTransition.fromState = fromState.name;
+              unwoundTransition.toState   = toState.name;
+
+              this.transitions.push(unwoundTransition);
+              fromState.exitTransitions.push(unwoundTransition);
+              toState.enterTransitions.push(unwoundTransition);
+              this.transitionsFor(eventName).push(unwoundTransition);
+              this.transitionsFor(eventName, fromState.name).push(unwoundTransition);
+            }
+          }
+
+          delete event._woundTransitions;
+        }
       },
 
       _compile: function() {
-        this._compileStates();
-        this._compileEvents();
+        this._compileStatesDefinition();
+        this._compileEventDefinitions();
+        this._extractStatesFromTransitions();
         this._unwindTransitions();
-        this._runAfterCompile();
       }
     };
   });define("ember-fsm/machine",
-  ["ember","./utils","./transition","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
+  ["ember","./utils","./transition","./definition","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
     var Ember = __dependency1__["default"] || __dependency1__;
-    var required = __dependency1__.required;
     var computed = __dependency1__.computed;
     var typeOf = __dependency1__.typeOf;
     var inspect = __dependency1__.inspect;
+    var on = __dependency1__.on;
     var capitalCamelize = __dependency2__.capitalCamelize;
     var Transition = __dependency3__["default"] || __dependency3__;
-
-    var STATE_MACROS;
-    var ALL_MACRO;
-    var INITIAL_MACRO;
-
-    STATE_MACROS = [
-      ALL_MACRO     = '$all',
-      INITIAL_MACRO = '$initial'
-    ];
+    var Definition = __dependency4__["default"] || __dependency4__;
 
     __exports__["default"] = Ember.Object.extend({
-      initialState:      'initialized',
-      isTransitioning:   computed.bool('activeTransitions.length'),
-      stateEvents:       null,
+      isTransitioning:   false,
+      events:            null,
+      states:            null,
       activeTransitions: null,
       currentState:      null,
 
-      target: computed(function(key, value) {
-        return arguments.length === 1 ? this : value;
-      }),
-
       init: function() {
-        this._transitions_ = {};
-        if (!this.get('stateEvents')) {
-          throw new Ember.Error(
-            'No stateEvents were specified, a state machine can not function ' +
-            'without state, COMMON.'
-          );
+        var target = this.get('target');
+        var events = this.get('events');
+        var states = this.get('states');
+
+        if (!target) {
+          this.set('target', this);
         }
+
+        if (!events.error) {
+          events.error = { transition: { $all: 'failed' } };
+        }
+
         this.set('activeTransitions', []);
-        this._load_();
-        this.set('currentState', this.get('initialState'));
-        this._installBooleanStateAccessors_();
+
+        this.definition = new Definition({
+          states: states,
+          events: events
+        });
+
+        this.set('stateNames',   this.definition.stateNames);
+        this.set('eventNames',   this.definition.eventNames);
+        this.set('currentState', this.definition.initialState);
       },
 
       send: function(event) {
@@ -472,7 +651,7 @@ define("ember-fsm/machine-definition",
 
         if (!this.get('eventNames').contains(event)) {
           throw new Ember.Error(
-            'unknown state event ' + inspect(event) + ' try one of [' +
+            'unknown state event "' + event + '" try one of [' +
             this.get('eventNames').join(', ') + ']'
           );
         }
@@ -482,9 +661,9 @@ define("ember-fsm/machine-definition",
 
         if (this.get('isTransitioning') && !sameState) {
           throw new Ember.Error(
-            'unable to transition out of ' + this.get('currentState') + ' state ' +
-            'while transitions are active: ' +
-            inspect(this.get('activeTransitions'))
+            'unable to transition out of "' + this.get('currentState') + '" ' +
+            'state to "' + transition.toState + '" state while transitions are ' +
+            'active: ' + inspect(this.get('activeTransitions'))
           );
         }
 
@@ -493,308 +672,214 @@ define("ember-fsm/machine-definition",
         promise = transition.perform();
 
         promise.catch(function(error) {
-          fsm.send('error', error);
+          fsm.abortActiveTransitions();
+          fsm.send('error', {
+            error: error,
+            transition: transition
+          });
         });
 
         promise.finally(function() {
           fsm.removeActiveTransition(transition);
         });
 
-        return transition;
+        return promise;
+      },
+
+      abortActiveTransition: function(transition) {
+        if (this.hasActiveTransition(transition)) {
+          transition.abort();
+          this.removeActiveTransition(transition);
+        }
+      },
+
+      hasActiveTransition: function(transition) {
+        return this.get('activeTransitions').contains(transition);
+      },
+
+      abortActiveTransitions: function() {
+        var activeTransitions = this.get('activeTransitions');
+
+        while (activeTransitions.length) {
+          activeTransitions.popObject().abort();
+        }
+
+        this.set('isTransitioning', false);
       },
 
       pushActiveTransition: function(transition) {
-        this.get('activeTransitions').pushObject(transition);
+        var activeTransitions = this.get('activeTransitions');
+
+        activeTransitions.pushObject(transition);
+
+        if (activeTransitions.get('length')) {
+          this.set('isTransitioning', true);
+        }
       },
 
       removeActiveTransition: function(transition) {
-        this.get('activeTransitions').removeObject(transition);
+        var activeTransitions = this.get('activeTransitions');
+
+        activeTransitions.removeObject(transition);
+
+        if (!activeTransitions.get('length')) {
+          this.set('isTransitioning', false);
+        }
       },
 
-      stateMapsFor: function(event) {
-        var defs = this._transitions_[event];
-        var maps = [];
-
-        defs.forEach(function(def) {
-          var map = {};
-          var macro;
-          var fromStates;
-
-          if (macro = def.fromStatesMacro) {
-            if (macro === ALL_MACRO) {
-              fromStates = [this.get('initialState')];
-            } else if (macro === INITIAL_MACRO) {
-              fromStates = this.get('stateNames');
-            } else {
-              throw new Ember.Error('unknown state macro: ' + inspect(macro));
-            }
-          } else {
-            fromStates = def.fromStates;
-          }
-
-          fromStates.forEach(function(fromState) {
-            var copy = {};
-            var key;
-
-            for (key in def) {
-              copy[key] = def[key];
-            }
-
-            copy.fromState = fromState;
-            copy.event     = event;
-
-            delete copy.fromStatesMacro;
-            delete copy.fromStates;
-
-            map[fromState] = copy;
-          });
-
-          maps.push(map);
-        }, this);
-
-        return maps;
-      },
-
-      checkGuard: function(guardProperty, inverse) {
-        var target = this.get('target');
-        var guardValue;
-        var guardTarget;
+      checkGuard: function(guardProperty, isInverse) {
+        var target     = this.get('target');
+        var guardValue = target.get(guardProperty);
         var result;
 
-        if ((guardValue = this.get(guardProperty))) {
-          guardTarget = this;
-        } else if ((guardValue = target.get(guardProperty))) {
-          guardTarget = target;
+        if (guardValue === undefined) {
+          throw new Error('expected guard "' + guardProperty + '" on target "' +
+          target + '" to be defined');
+        } else if (typeOf(guardValue) === 'function') {
+          result = guardValue.call(this) ? true : false;
         } else {
-          return inverse ? false : true;
+          result = guardValue ? true : false;
         }
 
-        if (typeOf(guardValue) === 'function') {
-          result = guardValue.call(guardTarget, this) ? true : false;
-        } else {
-          result = guardValue;
+        return isInverse ? !result : result;
+      },
+
+      outcomeOfPotentialTransitions: function(potentials) {
+        var target = this.get('target');
+        var potential;
+        var outcomeParams;
+        var i;
+
+        if (!potentials.length) {
+          return null;
         }
 
-        return inverse ? !result : result;
+        for (i = 0; i < potentials.length; i++) {
+          potential = potentials[i];
+
+          if (!potential.isGuarded) {
+            outcomeParams = potential;
+            break;
+          }
+
+          if (potential.doIf && this.checkGuard(potential.doIf)) {
+            outcomeParams = potential;
+            break;
+          }
+
+          if (potential.doUnless && this.checkGuard(potential.doUnless, true)) {
+            outcomeParams = potential;
+            break;
+          }
+        }
+
+        if (!outcomeParams) {
+          return null;
+        }
+
+        outcomeParams.machine = this;
+        outcomeParams.target  = target;
+
+        return outcomeParams;
       },
 
       transitionFor: function(event, args) {
         var currentState = this.get('currentState');
-        var stateMaps    = this.stateMapsFor(event);
-        var hadGuard     = false;
-        var guardValue;
-        var inverse;
-        var params;
-        var iterParams;
-        var i;
+        var potentials   = this.definition.transitionsFor(event, currentState);
+        var transitionParams;
 
-        for (i = 0; i < stateMaps.length; i++) {
-          iterParams = stateMaps[i][currentState];
-
-          if (!iterParams) {
-            continue;
-          }
-
-          if ((guardValue = iterParams['if'])) {
-            inverse  = false;
-            hadGuard = true;
-          } else if ((guardValue = iterParams.unless)) {
-            inverse  = true;
-            hadGuard = true;
-          }
-
-          if (guardValue) {
-            if (this.checkGuard(guardValue, inverse)) {
-              params = iterParams;
-              break;
-            } else {
-              continue;
-            }
-          }
-
-          params = iterParams;
-          break;
+        if (!potentials.length) {
+          throw new Ember.Error('no transition is defined for event "' + event +
+          '" in state "' + currentState + '"');
         }
 
-        if (!params) {
-          throw new Ember.Error('no ' + (hadGuard ? 'unguarded ' : '')  +
-          'transition was defined for event ' + event + ' in state ' +
-          currentState);
+        transitionParams = this.outcomeOfPotentialTransitions(potentials);
+
+        if (!transitionParams) {
+          throw new Ember.Error('no unguarded transition was resolved for event "' +
+          event + '" in state "' + currentState + '"');
         }
 
-        params.fsm       = this;
-        params.eventArgs = args;
+        transitionParams.eventArgs = args;
 
-        return Transition.create(params);
+        return Transition.create(transitionParams);
       },
 
-      inState: function(state) {
-        var currentState = this.get('currentState');
+      inState: function(stateOrPrefix) {
+        var currentState = this.definition.lookupState(this.get('currentState'));
+        var states       = this.definition.lookupStates(stateOrPrefix);
 
-        if (currentState === state) {
-          return true;
-        }
+        return states.contains(currentState);
+      },
 
-        if (currentState.slice(0, state.length) === state) {
-          return true;
-        }
+      canEnterState: function(state) {
+        var currentState = this.definition.lookupState(this.get('currentState'));
+        var potentials;
 
-        return false;
+        potentials = currentState.exitTransitions.filter(function(t) {
+          return t.toState === state;
+        });
+
+        return this.outcomeOfPotentialTransitions(potentials) ? true : false;
       },
 
       _setNewState_: function(transition) {
         this.set('currentState', transition.get('toState'));
       },
 
-      _normalizeTransitionDefinition: function(params) {
-        var defn      = {};
-        var fromState = params.from;
-        var toState   = params.to;
-
-        if (!fromState || !toState) {
-          throw new Ember.Error(
-            'transition needs to specify both a from state and a to state: ' +
-            Ember.inspect(params)
-          );
-        }
-
-        if (STATE_MACROS.contains(fromState)) {
-          defn.fromStatesMacro = fromState;
-        } else if (typeOf(fromState) === 'array') {
-          defn.fromStates = fromState;
-        } else {
-          defn.fromStates = [fromState];
-        }
-
-        defn.toState = toState;
-        defn['if']   = params['if'];
-        defn.unless  = params.unless;
-
-        defn.userCallbacks = {
-          beforeEvent:    params.before || params.beforeEvent,
-          willExitState:  params.willExit || params.willExitState,
-          willEnterState: params.willEnter || params.willEnterState,
-          didExitState:   params.didExit || params.didExitState,
-          didEnterState:  params.action || params.actions || params.didEnter || params.didEnterState,
-          afterEvent:     params.after || params.afterEvent
-        };
-
-        return defn;
-      },
-
-      _normalizeTransitionPayload: function(payload) {
-        var defs = [];
-        var fromState;
-        var toState;
-
-        if (typeOf(payload) === 'array') {
-          payload.forEach(function(params) {
-            defs.push(this._normalizeTransitionDefinition(params));
-          }, this);
-        } else if (typeOf(payload) === 'object') {
-          for (fromState in payload) {
-            toState = payload[fromState];
-            defs.push(this._normalizeTransitionDefinition({
-              from: fromState,
-              to: toState
-            }));
-          }
-        } else {
-          throw new Ember.Error('transitions must be an object or an array');
-        }
-
-        return defs;
-      },
-
-      _load_: function() {
-        var definition = this.get('stateEvents');
-        var eventNames = [];
-        var stateNames = [];
-        var eventName;
-        var eventPayload;
-        var transPayload;
-        var transDefs;
+      _setupIsStateAccessors: on('init', function() {
+        var mixin = {};
+        var prefixes = this.definition.stateNamespaces.slice(0);
+        var properties = [];
+        var prefix;
         var i;
 
-        definition.error = { transitions: { $all: 'failed' } };
+        function addAccessor(prefix) {
+          var property = ('isIn' + capitalCamelize(prefix));
 
-        for (eventName in definition) {
-          eventPayload = definition[eventName];
-          transPayload = (eventPayload.transitions || eventPayload.transition);
-          transDefs    = this._normalizeTransitionPayload(transPayload);
+          properties.push(property);
 
-          eventNames.push(eventName);
-          this._transitions_[eventName] = transDefs;
-
-          for (i = 0; i < transDefs.length; i++) {
-            if (transDefs[i].fromStates) {
-              stateNames.addObjects(transDefs[i].fromStates);
-            }
-
-            stateNames.addObject(transDefs[i].toState);
-          }
-        }
-
-        this.set('stateNames', stateNames);
-        this.set('eventNames', eventNames);
-      },
-
-      _installBooleanStateAccessors_: function() {
-        var mixin  = {};
-        var states = this.get('stateNames');
-        var key;
-        var accessorProperties = [];
-
-        states.forEach(function(state) {
-          var parts = state.split('.');
-
-          if (parts.length > 1) {
-            parts.forEach(function(part, index) {
-              var substate;
-
-              if (index === parts.length) {
-                return;
-              }
-
-              substate = parts.slice(0, index).join('.');
-
-              mixin['is' + capitalCamelize(substate)] = computed(function() {
-                return this.inState(substate);
-              }).property(state);
-            });
-          }
-
-          mixin['is' + capitalCamelize(state)] = computed(function() {
-            return this.inState(state);
+          mixin[property] = computed(function() {
+            return this.inState(prefix);
           }).property('currentState');
-        }, this);
-
-        for (key in mixin) {
-          accessorProperties.push(key);
         }
 
-        this._booleanStateAccessors_ = accessorProperties;
+        for (i = 0; i < this.definition.stateNames.length; i++) {
+          prefix = this.definition.stateNames[i];
+
+          if (prefixes.indexOf(prefix) !== -1) {
+            continue;
+          }
+
+          prefixes.push(prefix);
+        }
+
+        for (i = 0; i < prefixes.length; i++) {
+          addAccessor(prefixes[i]);
+        }
+
+        this.isInStateAccessorProperties = properties;
         this.reopen(mixin);
-      }
+      })
     });
   });define("ember-fsm",
-  ["./machine-definition","./machine","./transition","./stateful","./reject","./utils","exports"],
+  ["./definition","./machine","./transition","./stateful","./reject","./utils","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __exports__) {
     "use strict";
     /*!
     ember-fsm
     (c) 2014 Carsten Nielsen
-    - License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+    License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
     */
 
-    var MachineDefinition = __dependency1__["default"] || __dependency1__;
+    var Definition = __dependency1__["default"] || __dependency1__;
     var Machine = __dependency2__["default"] || __dependency2__;
     var Transition = __dependency3__["default"] || __dependency3__;
     var Stateful = __dependency4__["default"] || __dependency4__;
     var reject = __dependency5__.reject;
     var utils = __dependency6__["default"] || __dependency6__;
 
-    __exports__.MachineDefinition = MachineDefinition;
+    __exports__.Definition = Definition;
     __exports__.Machine = Machine;
     __exports__.Transition = Transition;
     __exports__.Stateful = Stateful;
@@ -821,36 +906,35 @@ define("ember-fsm/machine-definition",
     var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
-      initialState: undefined,
-      stateEvents:  required(),
-      isLoading:    computed.oneWay('fsm.isTransitioning'),
-      currentState: computed.oneWay('fsm.currentState'),
+      events:       required(),
+      states:       null,
+      isLoading:    computed.oneWay('__fsm__.isTransitioning'),
+      currentState: computed.oneWay('__fsm__.currentState'),
 
       init: function() {
-        var initialState;
         var params = {};
-        var boolAccesorsMixin = {};
+        var mixin  = {};
+        var fsm;
 
-        params.stateEvents = this.get('stateEvents');
-        params.target      = this;
+        params.target = this;
+        params.events = this.get('events');
+        params.states = this.get('states');
 
-        if ((initialState = this.get('initialState'))) {
-          params.initialState = initialState;
-        }
+        fsm = Machine.create(params);
 
-        this.set('fsm', Machine.create(params));
+        this.set('__fsm__', fsm);
 
-        this.get('fsm')._booleanStateAccessors_.forEach(function(accessor) {
-          boolAccesorsMixin[accessor] = computed.oneWay('fsm.' + accessor);
+        fsm.isInStateAccessorProperties.forEach(function(prop) {
+          mixin[prop] = computed.oneWay('__fsm__.' + prop);
         });
 
-        this.reopen(boolAccesorsMixin);
+        this.reopen(mixin);
 
         this._super();
       },
 
       sendStateEvent: function() {
-        var fsm = this.get('fsm');
+        var fsm = this.get('__fsm__');
         return fsm.send.apply(fsm, arguments);
       }
     });
@@ -862,29 +946,41 @@ define("ember-fsm/machine-definition",
     var RSVP = __dependency2__["default"] || __dependency2__;
     var computed = __dependency1__.computed;
     var inspect = __dependency1__.inspect;
+    var get = __dependency1__.get;
     var Promise = __dependency2__.Promise;
     var withPromise = __dependency3__.withPromise;
-    var toArray = __dependency3__.toArray;
 
     var CALLBACKS = [
-      ['beforeEvent',    'event'],
-      ['willExitState',  'fromState'],
-      ['willEnterState', 'toState'],
-      ['_setNewState_'],
-      ['didExitState',   'fromState'],
-      ['didEnterState',  'toState'],
-      ['afterEvent',     'event']
+      'beforeEvent',
+      'willExit',
+      'willEnter',
+      '_setNewState_',
+      'didExit',
+      'didEnter',
+      'afterEvent'
     ];
 
+    var EXT_CALLBACK_SOURCES = {
+      willExit: 'fromState',
+      didExit: 'fromState',
+      willEnter: 'toState',
+      didEnter: 'toState'
+    };
+
     __exports__["default"] = Ember.Object.extend({
-      fsm:           null,
+      target:        null,
+      machine:       null,
       fromState:     null,
       toState:       null,
       event:         null,
       eventArgs:     null,
-      userCallbacks: null,
-      target:        computed.oneWay('fsm.target'),
-      currentState:  computed.alias('fsm.currentState'),
+      beforeEvent:   null,
+      willEnter:     null,
+      didEnter:      null,
+      willExit:      null,
+      didExit:       null,
+      afterEvent:    null,
+      isAborted:     null,
       isResolving:   null,
       isResolved:    computed.not('isResolving'),
       isRejected:    null,
@@ -894,6 +990,10 @@ define("ember-fsm/machine-definition",
         this.set('rejections',  {});
       },
 
+      abort: function() {
+        this.set('isAborted', true);
+      },
+
       perform: function() {
         var transition = this;
         var promise;
@@ -901,20 +1001,24 @@ define("ember-fsm/machine-definition",
         promise = new Promise(function(resolve, reject) {
           var currentCallbackIndex = 0;
 
-          function settleNext() {
+          function next() {
             var cb = CALLBACKS[currentCallbackIndex++];
 
             if (!cb) {
               resolve(transition);
             } else {
-              transition.callback(cb[0], cb[1]).then(settleNext, reject);
+              transition.callback(cb).then(next, reject);
             }
           }
 
-          settleNext();
+          next();
         });
 
         this.set('isResolving', true);
+
+        promise.then(function() {
+          transition.set('isRejected', false);
+        });
 
         promise.catch(function() {
           transition.set('isRejected', true);
@@ -927,113 +1031,132 @@ define("ember-fsm/machine-definition",
         return promise;
       },
 
-      userCallbacksFor: function(name) {
-        var target    = this.get('target');
-        var userValue = this.get('userCallbacks')[name];
-        var callbacks = [];
+      callbacksFor: function(transitionEvent) {
+        var callbacks  = [];
+        var machine    = this.get('machine');
+        var def        = machine.definition;
+        var target     = this.get('target');
+        var sources    = [this];
+        var sourceCallbackNames;
+        var extSource;
+        var source;
+        var callbackVia;
+        var callbackName;
+        var callbackFn;
+        var i;
+        var j;
 
-        if (!userValue) {
-          return [];
-        }
+        function fetchCallback(name) {
+          var fn = get(target, name);
 
-        toArray(userValue).forEach(function(userDefinedName) {
-          var userCallbacks = this.callbacksFor(userDefinedName);
-
-          if (!userCallbacks.length) {
-            throw new Ember.Error(
-              'undefined callback ' + inspect(userDefinedName) + ' on ' +
-              'target ' + inspect(target) + ' for transition:\n\n' +
-              this
-            );
+          if (!fn) {
+            throw new Error('did not find callback "' + name + '" on target: ' +
+            target);
           }
 
-          userCallbacks.forEach(function(cb) {
-            callbacks.push(cb);
-          });
-        }, this);
-
-        return callbacks;
-      },
-
-      callbacksFor: function(name) {
-        var callbacks = [];
-        var fsm    = this.get('fsm');
-        var target = this.get('target');
-        var fn;
-
-        if ((fn = fsm[name])) {
-          callbacks.push([fsm, fn, 'fsm:' + name]);
+          return function() {
+            return fn.apply(target, arguments);
+          };
         }
 
-        if ((fn = target[name]) && fsm !== target) {
-          callbacks.push([target, fn, name]);
+        if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
+          sources.push(def.lookupState(this.get(extSource)));
         }
 
-        return callbacks;
-      },
+        for (i = 0; i < sources.length; i++) {
+          source = sources[i];
+          sourceCallbackNames = (source[transitionEvent] || []);
 
-      callback: function(name, arg0Property) {
-        var arg0             = arg0Property ? this.get(arg0Property) : null;
-        var promises         = {};
-        var eventArgs        = this.get('eventArgs');
-        var userCallbacks    = this.userCallbacksFor(name);
-        var builtinCallbacks = this.callbacksFor(name);
-        var transition       = this;
-        var promise;
+          for (j = 0; j < sourceCallbackNames.length; j++) {
+            callbackName = sourceCallbackNames[j];
+            callbackFn   = fetchCallback(callbackName);
+            callbackVia  = source === this ? 'transition' : 'state';
 
-        function pushPromises(callbacks, argsTwerker) {
-          var args = eventArgs.slice(0);
-
-          argsTwerker(args);
-
-          callbacks.forEach(function(cb) {
-            var target = cb[0];
-            var fn     = cb[1];
-
-            promises[cb[2]] = withPromise(function() {
-              return fn.apply(target, args);
+            callbacks.push({
+              via:  callbackVia,
+              name: callbackName,
+              fn:   callbackFn,
+              key:  (callbackVia + ':' + callbackName)
             });
+          }
+        }
+
+        return callbacks;
+      },
+
+      callback: function(name) {
+        var transition = this;
+        var promises   = {};
+        var callbacks;
+        var callback;
+        var promise;
+        var i;
+
+        function promiseCallback(fn) {
+          return withPromise(function() {
+            if (transition.get('isAborted')) {
+              return 'aborted';
+            } else {
+              return fn(transition);
+            }
           });
         }
 
-        pushPromises(builtinCallbacks, function(args) {
-          args.insertAt(0, transition);
+        function callbackPromiseResolver(cb) {
+          return function(result) {
+            var resolutions = transition.get('resolutions');
 
-          if (arg0) {
-            args.insertAt(0, arg0);
-          }
-        });
+            if (!resolutions[name]) {
+              resolutions[name] = {};
+            }
 
-        pushPromises(userCallbacks, function(args) {
-          if (arg0) {
-            args.push(arg0);
-          }
+            resolutions[name][cb.key] = result;
+          };
+        }
 
-          args.push(transition);
-        });
+        function callbackPromiseRejector(cb) {
+          return function(error) {
+            var rejections = transition.get('rejections');
 
-        promise = RSVP.hash(promises);
+            if (!rejections[name]) {
+              rejections[name] = {};
+            }
 
-        promise.then(function(results) {
-          delete results._setNewState_;
+            rejections[name][cb.key] = error;
 
-          transition.get('resolutions')[name] = results;
-        });
+            transition.set('rejection', error);
+          };
+        }
 
-        promise.catch(function(error) {
-          transition.get('rejections')[name] = error;
-        });
+        // Shortcut internal callbacks
+        if (name[0] === '_') {
+          return RSVP.resolve(this.get('machine')[name](this));
+        }
 
-        return promise;
+        callbacks = this.callbacksFor(name);
+
+        for (i = 0; i < callbacks.length; i++) {
+          callback = callbacks[i];
+          promise  = promiseCallback(callback.fn);
+
+          promise.then(
+            callbackPromiseResolver(callback),
+            callbackPromiseRejector(callback)
+          );
+
+          promises[callback.key] = promise;
+        }
+
+        return RSVP.hash(promises);
       },
 
       toString: function() {
         return (
-          'Transition {' +
-          '  event:      ' + this.get('event') + ',\n' +
-          '  eventArgs:  ' + inspect(this.get('eventArgs')) + ',\n' +
-          '  fromState:  ' + inspect(this.get('fromState')) + ',\n' +
-          '  toState:    ' + inspect(this.get('toState')) + ',\n' +
+          'Transition {\n' +
+          '  event: ' + this.get('event') + ',\n' +
+          '  eventArgs: ' + inspect(this.get('eventArgs')) + ',\n' +
+          '  fromState: ' + inspect(this.get('fromState')) + ',\n' +
+          '  toState: ' + inspect(this.get('toState')) + ',\n' +
           '  isResolved: ' + this.get('isResolved') + ',\n' +
           '  isRejected: ' + this.get('isRejected') + '\n' +
           '}'

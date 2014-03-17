@@ -2,17 +2,17 @@
 /*!
 ember-fsm
 (c) 2014 Carsten Nielsen
-- License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
 */
 
-var MachineDefinition = require("./machine-definition")["default"] || require("./machine-definition");
+var Definition = require("./definition")["default"] || require("./definition");
 var Machine = require("./machine")["default"] || require("./machine");
 var Transition = require("./transition")["default"] || require("./transition");
 var Stateful = require("./stateful")["default"] || require("./stateful");
 var reject = require("./reject").reject;
 var utils = require("./utils")["default"] || require("./utils");
 
-exports.MachineDefinition = MachineDefinition;
+exports.Definition = Definition;
 exports.Machine = Machine;
 exports.Transition = Transition;
 exports.Stateful = Stateful;

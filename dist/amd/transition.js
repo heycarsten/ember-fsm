@@ -6,29 +6,41 @@ define(
     var RSVP = __dependency2__["default"] || __dependency2__;
     var computed = __dependency1__.computed;
     var inspect = __dependency1__.inspect;
+    var get = __dependency1__.get;
     var Promise = __dependency2__.Promise;
     var withPromise = __dependency3__.withPromise;
-    var toArray = __dependency3__.toArray;
 
     var CALLBACKS = [
-      ['beforeEvent',    'event'],
-      ['willExitState',  'fromState'],
-      ['willEnterState', 'toState'],
-      ['_setNewState_'],
-      ['didExitState',   'fromState'],
-      ['didEnterState',  'toState'],
-      ['afterEvent',     'event']
+      'beforeEvent',
+      'willExit',
+      'willEnter',
+      '_setNewState_',
+      'didExit',
+      'didEnter',
+      'afterEvent'
     ];
 
+    var EXT_CALLBACK_SOURCES = {
+      willExit: 'fromState',
+      didExit: 'fromState',
+      willEnter: 'toState',
+      didEnter: 'toState'
+    };
+
     __exports__["default"] = Ember.Object.extend({
-      fsm:           null,
+      target:        null,
+      machine:       null,
       fromState:     null,
       toState:       null,
       event:         null,
       eventArgs:     null,
-      userCallbacks: null,
-      target:        computed.oneWay('fsm.target'),
-      currentState:  computed.alias('fsm.currentState'),
+      beforeEvent:   null,
+      willEnter:     null,
+      didEnter:      null,
+      willExit:      null,
+      didExit:       null,
+      afterEvent:    null,
+      isAborted:     null,
       isResolving:   null,
       isResolved:    computed.not('isResolving'),
       isRejected:    null,
@@ -38,6 +50,10 @@ define(
         this.set('rejections',  {});
       },
 
+      abort: function() {
+        this.set('isAborted', true);
+      },
+
       perform: function() {
         var transition = this;
         var promise;
@@ -45,20 +61,24 @@ define(
         promise = new Promise(function(resolve, reject) {
           var currentCallbackIndex = 0;
 
-          function settleNext() {
+          function next() {
             var cb = CALLBACKS[currentCallbackIndex++];
 
             if (!cb) {
               resolve(transition);
             } else {
-              transition.callback(cb[0], cb[1]).then(settleNext, reject);
+              transition.callback(cb).then(next, reject);
             }
           }
 
-          settleNext();
+          next();
         });
 
         this.set('isResolving', true);
+
+        promise.then(function() {
+          transition.set('isRejected', false);
+        });
 
         promise.catch(function() {
           transition.set('isRejected', true);
@@ -71,113 +91,132 @@ define(
         return promise;
       },
 
-      userCallbacksFor: function(name) {
-        var target    = this.get('target');
-        var userValue = this.get('userCallbacks')[name];
-        var callbacks = [];
+      callbacksFor: function(transitionEvent) {
+        var callbacks  = [];
+        var machine    = this.get('machine');
+        var def        = machine.definition;
+        var target     = this.get('target');
+        var sources    = [this];
+        var sourceCallbackNames;
+        var extSource;
+        var source;
+        var callbackVia;
+        var callbackName;
+        var callbackFn;
+        var i;
+        var j;
 
-        if (!userValue) {
-          return [];
-        }
+        function fetchCallback(name) {
+          var fn = get(target, name);
 
-        toArray(userValue).forEach(function(userDefinedName) {
-          var userCallbacks = this.callbacksFor(userDefinedName);
-
-          if (!userCallbacks.length) {
-            throw new Ember.Error(
-              'undefined callback ' + inspect(userDefinedName) + ' on ' +
-              'target ' + inspect(target) + ' for transition:\n\n' +
-              this
-            );
+          if (!fn) {
+            throw new Error('did not find callback "' + name + '" on target: ' +
+            target);
           }
 
-          userCallbacks.forEach(function(cb) {
-            callbacks.push(cb);
-          });
-        }, this);
-
-        return callbacks;
-      },
-
-      callbacksFor: function(name) {
-        var callbacks = [];
-        var fsm    = this.get('fsm');
-        var target = this.get('target');
-        var fn;
-
-        if ((fn = fsm[name])) {
-          callbacks.push([fsm, fn, 'fsm:' + name]);
+          return function() {
+            return fn.apply(target, arguments);
+          };
         }
 
-        if ((fn = target[name]) && fsm !== target) {
-          callbacks.push([target, fn, name]);
+        if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
+          sources.push(def.lookupState(this.get(extSource)));
         }
 
-        return callbacks;
-      },
+        for (i = 0; i < sources.length; i++) {
+          source = sources[i];
+          sourceCallbackNames = (source[transitionEvent] || []);
 
-      callback: function(name, arg0Property) {
-        var arg0             = arg0Property ? this.get(arg0Property) : null;
-        var promises         = {};
-        var eventArgs        = this.get('eventArgs');
-        var userCallbacks    = this.userCallbacksFor(name);
-        var builtinCallbacks = this.callbacksFor(name);
-        var transition       = this;
-        var promise;
+          for (j = 0; j < sourceCallbackNames.length; j++) {
+            callbackName = sourceCallbackNames[j];
+            callbackFn   = fetchCallback(callbackName);
+            callbackVia  = source === this ? 'transition' : 'state';
 
-        function pushPromises(callbacks, argsTwerker) {
-          var args = eventArgs.slice(0);
-
-          argsTwerker(args);
-
-          callbacks.forEach(function(cb) {
-            var target = cb[0];
-            var fn     = cb[1];
-
-            promises[cb[2]] = withPromise(function() {
-              return fn.apply(target, args);
+            callbacks.push({
+              via:  callbackVia,
+              name: callbackName,
+              fn:   callbackFn,
+              key:  (callbackVia + ':' + callbackName)
             });
+          }
+        }
+
+        return callbacks;
+      },
+
+      callback: function(name) {
+        var transition = this;
+        var promises   = {};
+        var callbacks;
+        var callback;
+        var promise;
+        var i;
+
+        function promiseCallback(fn) {
+          return withPromise(function() {
+            if (transition.get('isAborted')) {
+              return 'aborted';
+            } else {
+              return fn(transition);
+            }
           });
         }
 
-        pushPromises(builtinCallbacks, function(args) {
-          args.insertAt(0, transition);
+        function callbackPromiseResolver(cb) {
+          return function(result) {
+            var resolutions = transition.get('resolutions');
 
-          if (arg0) {
-            args.insertAt(0, arg0);
-          }
-        });
+            if (!resolutions[name]) {
+              resolutions[name] = {};
+            }
 
-        pushPromises(userCallbacks, function(args) {
-          if (arg0) {
-            args.push(arg0);
-          }
+            resolutions[name][cb.key] = result;
+          };
+        }
 
-          args.push(transition);
-        });
+        function callbackPromiseRejector(cb) {
+          return function(error) {
+            var rejections = transition.get('rejections');
 
-        promise = RSVP.hash(promises);
+            if (!rejections[name]) {
+              rejections[name] = {};
+            }
 
-        promise.then(function(results) {
-          delete results._setNewState_;
+            rejections[name][cb.key] = error;
 
-          transition.get('resolutions')[name] = results;
-        });
+            transition.set('rejection', error);
+          };
+        }
 
-        promise.catch(function(error) {
-          transition.get('rejections')[name] = error;
-        });
+        // Shortcut internal callbacks
+        if (name[0] === '_') {
+          return RSVP.resolve(this.get('machine')[name](this));
+        }
 
-        return promise;
+        callbacks = this.callbacksFor(name);
+
+        for (i = 0; i < callbacks.length; i++) {
+          callback = callbacks[i];
+          promise  = promiseCallback(callback.fn);
+
+          promise.then(
+            callbackPromiseResolver(callback),
+            callbackPromiseRejector(callback)
+          );
+
+          promises[callback.key] = promise;
+        }
+
+        return RSVP.hash(promises);
       },
 
       toString: function() {
         return (
-          'Transition {' +
-          '  event:      ' + this.get('event') + ',\n' +
-          '  eventArgs:  ' + inspect(this.get('eventArgs')) + ',\n' +
-          '  fromState:  ' + inspect(this.get('fromState')) + ',\n' +
-          '  toState:    ' + inspect(this.get('toState')) + ',\n' +
+          'Transition {\n' +
+          '  event: ' + this.get('event') + ',\n' +
+          '  eventArgs: ' + inspect(this.get('eventArgs')) + ',\n' +
+          '  fromState: ' + inspect(this.get('fromState')) + ',\n' +
+          '  toState: ' + inspect(this.get('toState')) + ',\n' +
           '  isResolved: ' + this.get('isResolved') + ',\n' +
           '  isRejected: ' + this.get('isRejected') + '\n' +
           '}'

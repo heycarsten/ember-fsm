@@ -8,36 +8,35 @@ define(
     var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
-      initialState: undefined,
-      stateEvents:  required(),
-      isLoading:    computed.oneWay('fsm.isTransitioning'),
-      currentState: computed.oneWay('fsm.currentState'),
+      events:       required(),
+      states:       null,
+      isLoading:    computed.oneWay('__fsm__.isTransitioning'),
+      currentState: computed.oneWay('__fsm__.currentState'),
 
       init: function() {
-        var initialState;
         var params = {};
-        var boolAccesorsMixin = {};
+        var mixin  = {};
+        var fsm;
 
-        params.stateEvents = this.get('stateEvents');
-        params.target      = this;
+        params.target = this;
+        params.events = this.get('events');
+        params.states = this.get('states');
 
-        if ((initialState = this.get('initialState'))) {
-          params.initialState = initialState;
-        }
+        fsm = Machine.create(params);
 
-        this.set('fsm', Machine.create(params));
+        this.set('__fsm__', fsm);
 
-        this.get('fsm')._booleanStateAccessors_.forEach(function(accessor) {
-          boolAccesorsMixin[accessor] = computed.oneWay('fsm.' + accessor);
+        fsm.isInStateAccessorProperties.forEach(function(prop) {
+          mixin[prop] = computed.oneWay('__fsm__.' + prop);
         });
 
-        this.reopen(boolAccesorsMixin);
+        this.reopen(mixin);
 
         this._super();
       },
 
       sendStateEvent: function() {
-        var fsm = this.get('fsm');
+        var fsm = this.get('__fsm__');
         return fsm.send.apply(fsm, arguments);
       }
     });

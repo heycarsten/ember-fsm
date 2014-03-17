@@ -140,7 +140,37 @@ describe('FSM.Transition', function() {
       });
     });
 
-    xit('is true while transition resolves');
+    it('is true while transition resolves', function(done) {
+      var promise;
+      var resolver;
+      var fsm;
+      var t;
+
+      promise = new Em.RSVP.Promise(function(resolve) {
+        resolver = resolve;
+      });
+
+      fsm = createCallbackMachine({
+        stopAnimations: Em.K,
+        becameOkay: function() {
+          return promise;
+        }
+      });
+
+      t = fsm.transitionFor('wakeKitty');
+
+      t.perform();
+
+      Em.run.next(function() {
+        expect(t.get('isResolving')).toBe(true);
+        resolver();
+
+        Em.run.next(function() {
+          expect(t.get('isResolving')).toBe(false);
+          done();
+        });
+      });
+    });
   });
 
   describe('isRejected', function() {
@@ -150,6 +180,7 @@ describe('FSM.Transition', function() {
     beforeEach(function() {
       fsm = createCallbackMachine({
         becameOkay: Em.K,
+        resetFace: Em.K,
         stopAnimations: function() {
           throw 'fail';
         }
@@ -168,13 +199,15 @@ describe('FSM.Transition', function() {
       });
     });
 
-    xit('is false if the transition resolves', function(done) {
+    it('is false if the transition resolves', function(done) {
       fsm.set('currentState', 'happy');
       t = fsm.transitionFor('cuddleKitty')
 
       t.perform().then(function() {
-        expect(t.get('isRejected')).toBe(false);
-        done();
+        Em.run.next(function() {
+          expect(t.get('isRejected')).toBe(false);
+          done();
+        });
       });
     });
   });

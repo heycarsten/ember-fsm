@@ -1,159 +1,178 @@
 # Ember FSM
 
-A promise-aware finite state machine implementation for Ember objects.
-
-[A wild traffic signal demo appears](http://emberjs.jsbin.com/kisuk/1)
+#### A promise-aware finite state machine implementation for Ember objects
 
 ```js
-App.TrafficSignalController = Em.Controller.extend(Em.FSM.Stateful, {
-  states: {
-    initialState: 'off',
-
-    off: {
-      didEnter: ['didPowerOff', 'notifyPowerDown'],
-      willExit: 'notifyPowerUp'
-    }
-  },
-
-  stateEvents: {
+var trafficSignal = Em.FSM.Machine.create({
+  events: {
     cycle: {
-      after: 'colorChanged',
-
       transitions: [
-        { off: 'on.red' },
-        { 'on.red': 'on.green' },
-        { 'on.green': 'on.amber' },
-        { 'on.amber': 'on.red' }
+        { initialized: 'red' },
+        { red: 'green' },
+        { green: 'amber' },
+        { amber: 'red' }
       ]
     },
 
     powerDown: {
-      transition: {
-        from: ['on.red', 'on.green', 'on.amber'], to: 'off'
-      }
+      transition: { $all: 'off' }
+    }
+  }
+});
+
+trafficSignal.get('currentState');
+// "initialized"
+
+trafficSignal.send('cycle');
+trafficSignal.get('currentState');
+// "red"
+
+trafficSignal.send('cycle');
+trafficSignal.get('currentState')
+// "green"
+```
+
+_A wild [traffic signal demo](http://emberjs.jsbin.com/kisuk/1) appears!_
+
+## Getting Started
+
+The most recent builds are available in the [`dist`](/dist) directory. If you
+just want to drop `Ember.FSM` into your app and start using it, you're probably
+looking for: [`dist/globals/main.js`](/dist/globals/main.js).
+
+### Defining a State Machine
+
+```js
+SleepyFSM = Ember.FSM.Machine.extend({
+  // Here is where you define your state machine's state-specific configuration.
+  // This section is optional.
+  states: {
+    // The default initial state is "initialized"
+    initialState: 'awake'
+
+    // If you'd like, you can choose to explicitly define the names of your
+    // states:
+    knownStates: ['sleeping', 'angry', 'awake', 'initialized', 'failed'],
+
+    // You can define global per-state callbacks, you don't have to.
+    sleeping: {
+      willEnter: function() { },
+      didEnter: function() { },
+      willExit: function() { },
+      didExit: function() { }
     }
   },
 
-  // ...
-});
-```
-
-## Using It
-
-## Callbacks
-
-Callbacks are defined on the 'target', by default the target is the state
-machine itself. This can be changed manually, or by using the `FSM.Stateful`
-mixin.
-
-```js
-fsm = Ember.FSM.Machine.create({
-  initialState: 'awake',
-
-  stateEvents: {
+  // Here's where you define your state machine's events, it is required.
+  events: {
     sleep: {
-      transitions: { 'awake': 'sleeping' }
-    }
-  }
-});
+      // You can define global per-event callbacks. These will fire for any
+      // transition in this event.
+      before: function() { },
+      after: function() { },
 
-fsm.send('sleep', *eventArgs); => RSVP.Promise
-```
-
-Here's what the callback cycle looks like:
-
-| Current State | Event      | Action                                          |
-|:--------------|:-----------|:------------------------------------------------|
-| awake         | callback   | `beforeEvent('sleep', transition, *eventArgs)`  |
-| awake         | callback   | `willExit('awake', transition, *eventArgs)`     |
-| awake         | callback   | `willEnter('sleeping', transition, *eventArgs)` |
-| sleeping      | _internal_ | `_setNewState_`                                 |
-| sleeping      | callback   | `didExit('awake', transition, *eventArgs)`      |
-| sleeping      | callback   | `didEnter('sleeping', transition, *eventArgs)`  |
-| sleeping      | callback   | `afterEvent('sleep', transition, *eventArgs)`   |
-
-### User defined callbacks
-
-You are not limited to the built in callbacks, you can freely provide your own
-callbacks in your state machine definition:
-
-```js
-fsm = Ember.FSM.Machine.create({
-  stateEvents: {
-    sleep: {
-      transitions: { from: 'awake', to: 'sleeping', action: 'startedSleeping' }
+      // This is where the event's transitions are defined, it is also aliased
+      // to "transition". It can accept either a single object like one in the
+      // array below, or an array of transition definition objects:
+      transitions: [
+        { awake: 'sleeping', doUnless: 'unableToSleep' },
+        { awake: 'angry', doIf: 'unableToSleep' },
+        { sleeping: '$same' }
+      ]
     },
 
-    awake: {
-      transitions: { from: 'sleeping', to: 'awake', before: 'prepareBath' }
+    // By default this error event is injected into your state machine for you,
+    // you can override it and provide your own transitions and callbacks if
+    // you'd like.
+    error: {
+      transition: { $all: 'failed' }
     }
   }
 });
 ```
 
-User defined callbacks have a reversed argument signature than the built-in
-callbacks, since the context is known when they are defined, the contextual
-arguments are last. For example, take the `startedSleeping` event specified
-in the definition above, here's how it would be called:
+### State Macros
+
+For the sake of less typing (and less chances of introducing failure) the
+following macros can be used in transition definitions:
+
+| Macro      | Description                   |
+|:-----------|:------------------------------|
+| `$all`     | Expands to all known states.  |
+| `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` | 
+| `$initial` | Expands to the initial state. |
+
+### Transition Events & Callbacks
+
+Given the `SleepyFSM` example above, suppose we ran the following:
 
 ```js
-fsm.send('sleep', 6, 'hours')
+var fsm = SleepyFSM.create();
+fsm.send('sleep');
 ```
 
-Would call:
+Here is the series of transition events that will occurr and the corresponding
+callbacks that will run and where they can be defined:
 
-```js
-target.startedSleeping(6, 'hours', newState, transition)
-```
+| Current State | Event           | Runs callbacks                        |
+|:--------------|:----------------|:--------------------------------------|
+| awake         | `beforeEvent`   | `before` on events and transitions    |
+| awake         | `willExit`      | `willExit` on states and transitions  |
+| awake         | `willEnter`     | `willEnter` on states and transitions |
+| sleeping      | `_setNewState_` | _internal_                            |
+| sleeping      | `didExit`       | `didExit` on states and transitions   |
+| sleeping      | `didEnter`      | `didEnter` on states and transitions  |
+| sleeping      | `afterEvent`    | `after` on events and transitions     |
 
-The event names for transition-based callbacks are
-
-### Asynchronicity in callbacks
+### Asynchronicity In Callbacks
 
 If callbacks return a promise, the next callback in the chain will not fire
 until the promise is resolved. The return value of callbacks is stored in the
-transition's `resolutions` object. Likewise, failures are store in the
-`rejections` object.
+transition's `resolutions` object. Likewise, rejections are stored in the
+`rejections` object of the transition.
 
-## Substates
+### Namespacing States
 
-Substates don't technically exist, but you can namespace your states. For
-example suppose a portion of your state workflow is related in some way, you can
-prefix those states with a namespace. Consider the following:
+`Ember.FSM` doesn't provide true sub-state support, but you can namespace your
+states. For example, suppose a portion of your state workflow is related in
+some way; you can prefix those states with a namespace:
 
-```
-ready
-uploading.requestingUrl
-uploading.sendingData
-processing.enqueuing
-processing.working
-finished
-```
+* ready
+* uploading.requestingUrl
+* uploading.sendingData
+* processing.enqueuing
+* processing.working
+* finished
 
 When you define states like this, Ember.FSM automatically generates the
 following boolean accessor properties for you:
 
 ```
-isReady
-isUploading
-isUploadingRequestingUrl
-isUploadingSendingData
-isProcessing
-isProcessingEnqueuiing
-isProcessingWorking
-isFinished
+isInReady
+isInUploading
+isInUploadingRequestingUrl
+isInUploadingSendingData
+isInProcessing
+isInProcessingEnqueuiing
+isInProcessingWorking
+isInFinished
 ```
 
-## Ember.FSM.Stateful
+### Ember.FSM.Stateful Mixin
 
-Often you'll want to define a state machine on an object, this can be done using
-the `Ember.FSM.Stateful` mixin. Here's an example of a typical use for a state
-machine on an Ember object:
+When it comes to using `Ember.FSM` in your application, you'll almost always
+want to use `Ember.FSM.Stateful` over sub-classing `Ember.FSM.Machine`. This way
+you can formalize a state workflow around something like file uploads where you
+might have to incorporate three different proceesses into on user experience.
+
+Building these sorts of workflows implicitly as-you-code-along can be a recipie
+for massive sadness. So why be sad? Formalize that workflow! Here's an example
+of how adding `Ember.FSM.Stateful` to a controller can remove a lot of the
+tedious parts of workflow managment:
 
 ```js
 App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
   needs: 'notifier',
-  initialState: 'nofile',
 
   actions: {
     uploadFile: function(file) {
@@ -162,28 +181,31 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
     }
   },
 
+  states: {
+    initialState: 'nofile'
+  },
+
   stateEvents: {
     addFile: {
       transitions: {
+        from:   ['nofile', 'failed'],
+        to:     'ready',
         before: 'checkFile',
-        from: ['nofile', 'failed'], to: 'ready'
       }
     },
 
     startUpload: {
       transitions: {
-        before: 'getUploadURL',
-        from: 'ready', to: 'uploading',
-        action: 'performUpload',
-        after: 'finishedUpload'
+        from:     'ready',
+        to:       'uploading',
+        before:   'getUploadURL',
+        didEnter: 'performUpload',
+        after:    'finishedUpload'
       }
     },
 
     finishUpload: {
-      transitions: {
-        from: 'uploading', to: 'nofile',
-        action: 'reset'
-      }
+      transition: { uploading: 'nofile', didEnter: 'reset' }
     }
   },
 
@@ -198,7 +220,7 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
       return;
     } else {
       this.get('controllers.notifier').warn('file must have content');
-      Em.FSM.reject(); // Just a helper for throwing an error.
+      Em.FSM.reject(); // A helper for throwing an error
     }
   },
 
@@ -207,14 +229,14 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
     var fileName = this.get('file.name');
     var xhr;
 
-    xhr = $.ajax('/api/uploads/signed_urls', {
+    xhr = $.ajax('/api/signed_uploads', {
       type: 'put',
       data: { file: { name: fileName } }
     });
 
     xhr.then(function(payload) {
       Em.run(function() {
-        controller.set('uploadToURL', payload.signed_url.url);
+        controller.set('uploadToURL', payload.signed_upload.url);
       });
     });
 
@@ -224,13 +246,13 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
   performUpload: function() {
     return $.ajax(this.get('uploadToURL'), {
       type: 'put',
-      data: this.get('file'),
+      data: this.get('file')
     });
   },
 
   finishedUpload: function() {
     this.get('controllers.notifier').success('Upload complete');
-    this.sendStateEvent('finished');
+    this.sendStateEvent('finishUpload');
   }
 });
 ```
@@ -256,3 +278,12 @@ testem
 ```
 
 Then do what testem tells you to do.
+
+## Thanks
+
+- [@joliss](https://github.com/joliss) for all her hard work on [broccoli](https://github.com/joliss/broccoli)
+- [@rpflorence](https://github.com/rpflorence) for all of his work on [broccoli-dist-es6-module](https://github.com/rpflorence/broccoli-dist-es6-module)
+- [@obrie](https://github.com/obrie) for the Ruby [state_machine](https://github.com/pluginaweek/state_machine) gem, which was my first introduction to state machines
+- [@tildeio](https://github.com/tildeio) & crew for [RSVP](https://github.com/tildeio/rsvp.js) and [Ember](https://github.com/emberjs/ember.js)
+- My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drtooth](https://github.com/drtooth) for reviewing and fiddling with the stuff I make
+- [Unspace](https://unspace.ca) for understanding open source and caring about open source

@@ -54,7 +54,8 @@ SleepyFSM = Ember.FSM.Machine.extend({
     // states:
     knownStates: ['sleeping', 'angry', 'awake', 'initialized', 'failed'],
 
-    // You can define global per-state callbacks, you don't have to.
+    // You can define global per-state callbacks, they will fire whenever the
+    // state will be entered, was entered, will be exited, or was exited.
     sleeping: {
       willEnter: function() { },
       didEnter: function() { },
@@ -67,7 +68,7 @@ SleepyFSM = Ember.FSM.Machine.extend({
   events: {
     sleep: {
       // You can define global per-event callbacks. These will fire for any
-      // transition in this event.
+      // transition before or after this event.
       before: function() { },
       after: function() { },
 
@@ -102,6 +103,16 @@ following macros can be used in transition definitions:
 | `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` | 
 | `$initial` | Expands to the initial state. |
 
+### Transition Gating
+
+You can specify that a transition be excluded or included in the event using
+`doIf` or `doUnless`. Order matters, consider `SleepyFSM` above, if we set
+`unableToSleep` to `true` then when we send in the `sleep` event, it will
+transition to the state `angry` because the transition `{ awake: 'sleeping' }`
+will be excluded from the list.
+
+`doIf` and `doUnless` are aliased to `guard` and `unless` respectively.
+
 ### Transition Events & Callbacks
 
 Given the `SleepyFSM` example above, suppose we ran the following:
@@ -123,6 +134,15 @@ callbacks that will run and where they can be defined:
 | sleeping      | `didExit`       | `didExit` on states and transitions   |
 | sleeping      | `didEnter`      | `didEnter` on states and transitions  |
 | sleeping      | `afterEvent`    | `after` on events and transitions     |
+
+Some of the event names above also have aliases:
+
+| Event         | Aliases           |
+|:--------------|:------------------|
+| `beforeEvent` | `before`          |
+| `afterEvent`  | `after`           |
+| `didEnter`    | `enter`, `action` |
+| `didExit`     | `exit`            |
 
 ### Asynchronicity In Callbacks
 

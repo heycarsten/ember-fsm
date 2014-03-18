@@ -2,7 +2,43 @@
 
 A promise-aware finite state machine implementation for Ember objects.
 
-<a class="jsbin-embed" href="http://emberjs.jsbin.com/kisuk/1/embed?js,output">Ember.FSM Traffic Light</a><script src="http://static.jsbin.com/js/embed.js"></script>
+[A wild traffic signal demo appears](http://emberjs.jsbin.com/kisuk/1)
+
+```js
+App.TrafficSignalController = Em.Controller.extend(Em.FSM.Stateful, {
+  states: {
+    initialState: 'off',
+
+    off: {
+      didEnter: ['didPowerOff', 'notifyPowerDown'],
+      willExit: 'notifyPowerUp'
+    }
+  },
+
+  stateEvents: {
+    cycle: {
+      after: 'colorChanged',
+
+      transitions: [
+        { off: 'on.red' },
+        { 'on.red': 'on.green' },
+        { 'on.green': 'on.amber' },
+        { 'on.amber': 'on.red' }
+      ]
+    },
+
+    powerDown: {
+      transition: {
+        from: ['on.red', 'on.green', 'on.amber'], to: 'off'
+      }
+    }
+  },
+
+  // ...
+});
+```
+
+## Using It
 
 ## Callbacks
 
@@ -26,15 +62,15 @@ fsm.send('sleep', *eventArgs); => RSVP.Promise
 
 Here's what the callback cycle looks like:
 
-| Current State | Event      | Action                                               |
-|:--------------|:-----------|:-----------------------------------------------------|
-| awake         | callback   | `beforeEvent('sleep', transition, *eventArgs)`       |
-| awake         | callback   | `willExitState('awake', transition, *eventArgs)`     |
-| awake         | callback   | `willEnterState('sleeping', transition, *eventArgs)` |
-| sleeping      | _internal_ | `_setNewState_`                                      |
-| sleeping      | callback   | `didExitState('awake', transition, *eventArgs)`      |
-| sleeping      | callback   | `didEnterState('sleeping', transition, *eventArgs)`  |
-| sleeping      | callback   | `afterEvent('sleep', transition, *eventArgs)`        |
+| Current State | Event      | Action                                          |
+|:--------------|:-----------|:------------------------------------------------|
+| awake         | callback   | `beforeEvent('sleep', transition, *eventArgs)`  |
+| awake         | callback   | `willExit('awake', transition, *eventArgs)`     |
+| awake         | callback   | `willEnter('sleeping', transition, *eventArgs)` |
+| sleeping      | _internal_ | `_setNewState_`                                 |
+| sleeping      | callback   | `didExit('awake', transition, *eventArgs)`      |
+| sleeping      | callback   | `didEnter('sleeping', transition, *eventArgs)`  |
+| sleeping      | callback   | `afterEvent('sleep', transition, *eventArgs)`   |
 
 ### User defined callbacks
 
@@ -199,21 +235,6 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
 });
 ```
 
-## TODO
-
-1. A way to cancel/abort an active transition.
-2. A way to schedule a transition after the next active one finishes.
-3. Explicit state definition and a way to define callbacks at the state-level
-   without needing to use the lower-level callbacks: `willEnterState`,
-   `didEnterState`, `willExitState`, `didExitState`.
-4. Boolean accessors for can/can't transition to states from current state.
-   For example, if we can go to `sleeping` from `tired` but we can't go to
-   `learning` then the following accessors would be set:
-
-   - `fsm.isTired => true`
-   - `fsm.canEnterSleeping => true`
-   - `fsm.canEnterLearning => false`
-
 ## Contributing
 
 Install Node.js and NPM, there are packages and binaries on the
@@ -233,3 +254,5 @@ Then in another session:
 cd my/fork/of/ember-fsm
 testem
 ```
+
+Then do what testem tells you to do.

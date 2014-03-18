@@ -38,6 +38,8 @@ var DEFMAP = {
   ],
 
   event: [
+    ['beforeEvent', BEFORES,     true],
+    ['afterEvent',  AFTERS,      true],
     ['transitions', TRANSITIONS, true]
   ],
 
@@ -196,6 +198,8 @@ function allocEvent(name, payload) {
 
   event = {
     name: name,
+    beforeEvent: definition.beforeEvent,
+    afterEvent: definition.afterEvent,
     _woundTransitions: []
   };
 

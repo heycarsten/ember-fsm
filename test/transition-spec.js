@@ -22,10 +22,14 @@ describe('FSM.Transition', function() {
       });
       var t = fsm.transitionFor('cuddleKitty');
       var didEnterCbs = t.callbacksFor('didEnter');
+      var beforeCbs   = t.callbacksFor('beforeEvent');
+      var afterCbs    = t.callbacksFor('afterEvent');
 
       expect(fsm.get('currentState')).toBe('okay');
       expect(t.callbacksFor('willEnter').length).toBe(0);
       expect(didEnterCbs.length).toBe(2);
+      expect(beforeCbs.length).toBe(2);
+      expect(afterCbs.length).toBe(2);
     });
 
     it('throws an error when the callbacks have not been defined on target', function() {

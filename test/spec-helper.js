@@ -64,10 +64,15 @@ function createCallbackMachine(opts) {
 
     events: {
       cuddleKitty: {
+        before: 'beforeCuddle',
+        after: 'afterCuddle',
+
         transitions: [
           { sad: 'happy' },
           { happy: '$same' },
-          { okay: 'happy', didEnter: 'playPurr' }
+          { okay: 'happy', didEnter: 'playPurr',
+            before: 'beforeCuddleFromOkayToHappy',
+            after: 'afterCuddleFromOkayToHappy' }
         ]
       },
 
@@ -87,6 +92,11 @@ function createCallbackMachine(opts) {
         transitions: { sleeping: 'okay' }
       }
     },
+
+    beforeCuddle: Em.K,
+    afterCuddle: Em.K,
+    beforeCuddleFromOkayToHappy: Em.K,
+    afterCuddleFromOkayToHappy: Em.K,
 
     playPurr: function() {
       return 'i am purring so much';

@@ -41,6 +41,8 @@ define("ember-fsm/definition",
       ],
 
       event: [
+        ['beforeEvent', BEFORES,     true],
+        ['afterEvent',  AFTERS,      true],
         ['transitions', TRANSITIONS, true]
       ],
 
@@ -199,6 +201,8 @@ define("ember-fsm/definition",
 
       event = {
         name: name,
+        beforeEvent: definition.beforeEvent,
+        afterEvent: definition.afterEvent,
         _woundTransitions: []
       };
 
@@ -964,7 +968,9 @@ define("ember-fsm/definition",
       willExit: 'fromState',
       didExit: 'fromState',
       willEnter: 'toState',
-      didEnter: 'toState'
+      didEnter: 'toState',
+      beforeEvent: 'event',
+      afterEvent: 'event'
     };
 
     __exports__["default"] = Ember.Object.extend({
@@ -1060,7 +1066,11 @@ define("ember-fsm/definition",
         }
 
         if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
-          sources.push(def.lookupState(this.get(extSource)));
+          if (extSource === 'event') {
+            sources.push(def.lookupEvent(this.get(extSource)));
+          } else {
+            sources.push(def.lookupState(this.get(extSource)));
+          }
         }
 
         for (i = 0; i < sources.length; i++) {

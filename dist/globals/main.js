@@ -39,6 +39,8 @@ var DEFMAP = {
   ],
 
   event: [
+    ['beforeEvent', BEFORES,     true],
+    ['afterEvent',  AFTERS,      true],
     ['transitions', TRANSITIONS, true]
   ],
 
@@ -197,6 +199,8 @@ function allocEvent(name, payload) {
 
   event = {
     name: name,
+    beforeEvent: definition.beforeEvent,
+    afterEvent: definition.afterEvent,
     _woundTransitions: []
   };
 
@@ -952,7 +956,9 @@ var EXT_CALLBACK_SOURCES = {
   willExit: 'fromState',
   didExit: 'fromState',
   willEnter: 'toState',
-  didEnter: 'toState'
+  didEnter: 'toState',
+  beforeEvent: 'event',
+  afterEvent: 'event'
 };
 
 exports["default"] = Ember.Object.extend({
@@ -1048,7 +1054,11 @@ exports["default"] = Ember.Object.extend({
     }
 
     if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
-      sources.push(def.lookupState(this.get(extSource)));
+      if (extSource === 'event') {
+        sources.push(def.lookupEvent(this.get(extSource)));
+      } else {
+        sources.push(def.lookupState(this.get(extSource)));
+      }
     }
 
     for (i = 0; i < sources.length; i++) {

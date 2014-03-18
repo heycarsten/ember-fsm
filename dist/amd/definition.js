@@ -41,6 +41,8 @@ define(
       ],
 
       event: [
+        ['beforeEvent', BEFORES,     true],
+        ['afterEvent',  AFTERS,      true],
         ['transitions', TRANSITIONS, true]
       ],
 
@@ -199,6 +201,8 @@ define(
 
       event = {
         name: name,
+        beforeEvent: definition.beforeEvent,
+        afterEvent: definition.afterEvent,
         _woundTransitions: []
       };
 

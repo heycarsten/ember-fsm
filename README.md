@@ -103,13 +103,13 @@ following macros can be used in transition definitions:
 | `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` | 
 | `$initial` | Expands to the initial state. |
 
-### Transition Gating
+### Transition Guarding
 
 You can specify that a transition be excluded or included in the event using
-`doIf` or `doUnless`. Order matters, consider `SleepyFSM` above, if we set
-`unableToSleep` to `true` then when we send in the `sleep` event, it will
-transition to the state `angry` because the transition `{ awake: 'sleeping' }`
-will be excluded from the list.
+`doIf` or `doUnless`. Consider `SleepyFSM` above, if we set `unableToSleep` to
+`true` then when we send in the `sleep` event, it will transition to the state
+`angry` because the transition `{ awake: 'sleeping' }` will be excluded from
+the list.
 
 `doIf` and `doUnless` are aliased to `guard` and `unless` respectively.
 
@@ -167,18 +167,16 @@ some way; you can prefix those states with a namespace:
 When you define states like this, Ember.FSM automatically generates the
 following boolean accessor properties for you:
 
-```
-isInReady
-isInUploading
-isInUploadingRequestingUrl
-isInUploadingSendingData
-isInProcessing
-isInProcessingEnqueuiing
-isInProcessingWorking
-isInFinished
-```
+* isInReady
+* isInUploading
+* isInUploadingRequestingUrl
+* isInUploadingSendingData
+* isInProcessing
+* isInProcessingEnqueuiing
+* isInProcessingWorking
+* isInFinished
 
-### Ember.FSM.Stateful Mixin
+### Stateful Mixin
 
 When it comes to using `Ember.FSM` in your application, you'll almost always
 want to use `Ember.FSM.Stateful` over sub-classing `Ember.FSM.Machine`. This way
@@ -305,5 +303,5 @@ Then do what testem tells you to do.
 - [@rpflorence](https://github.com/rpflorence) for all of his work on [broccoli-dist-es6-module](https://github.com/rpflorence/broccoli-dist-es6-module)
 - [@obrie](https://github.com/obrie) for the Ruby [state_machine](https://github.com/pluginaweek/state_machine) gem, which was my first introduction to state machines
 - [@tildeio](https://github.com/tildeio) & crew for [RSVP](https://github.com/tildeio/rsvp.js) and [Ember](https://github.com/emberjs/ember.js)
-- My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drtooth](https://github.com/drtooth) for reviewing and fiddling with the stuff I make
+- My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drteeth](https://github.com/drteeth) [@minusfive](https://github.com/minusfive) for reviewing and fiddling with the stuff I make
 - [Unspace](https://unspace.ca) for understanding open source and caring about open source

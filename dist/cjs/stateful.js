@@ -5,7 +5,7 @@ var computed = require("ember").computed;
 var Machine = require("./machine")["default"] || require("./machine");
 
 exports["default"] = Mixin.create({
-  events:       required(),
+  stateEvents:  required(),
   states:       null,
   isLoading:    computed.oneWay('__fsm__.isTransitioning'),
   currentState: computed.oneWay('__fsm__.currentState'),
@@ -16,7 +16,7 @@ exports["default"] = Mixin.create({
     var fsm;
 
     params.target = this;
-    params.events = this.get('events');
+    params.events = this.get('stateEvents');
     params.states = this.get('states');
 
     fsm = Machine.create(params);

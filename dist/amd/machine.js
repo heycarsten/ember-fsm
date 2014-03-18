@@ -27,7 +27,7 @@ define(
           this.set('target', this);
         }
 
-        if (!events.error) {
+        if (events && !events.error) {
           events.error = { transition: { $all: 'failed' } };
         }
 

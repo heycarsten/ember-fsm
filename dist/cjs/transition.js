@@ -27,22 +27,22 @@ var EXT_CALLBACK_SOURCES = {
 };
 
 exports["default"] = Ember.Object.extend({
-  target:        null,
-  machine:       null,
-  fromState:     null,
-  toState:       null,
-  event:         null,
-  eventArgs:     null,
-  beforeEvent:   null,
-  willEnter:     null,
-  didEnter:      null,
-  willExit:      null,
-  didExit:       null,
-  afterEvent:    null,
-  isAborted:     null,
-  isResolving:   null,
-  isResolved:    computed.not('isResolving'),
-  isRejected:    null,
+  target:      null,
+  machine:     null,
+  fromState:   null,
+  toState:     null,
+  event:       null,
+  eventArgs:   null,
+  beforeEvent: null,
+  willEnter:   null,
+  didEnter:    null,
+  willExit:    null,
+  didExit:     null,
+  afterEvent:  null,
+  isAborted:   null,
+  isResolving: null,
+  isResolved:  computed.not('isResolving'),
+  isRejected:  null,
 
   init: function() {
     this.set('resolutions', {});
@@ -91,11 +91,11 @@ exports["default"] = Ember.Object.extend({
   },
 
   callbacksFor: function(transitionEvent) {
-    var callbacks  = [];
-    var machine    = this.get('machine');
-    var def        = machine.definition;
-    var target     = this.get('target');
-    var sources    = [this];
+    var callbacks = [];
+    var machine   = this.get('machine');
+    var def       = machine.definition;
+    var target    = this.get('target');
+    var sources   = [this];
     var sourceCallbackNames;
     var extSource;
     var source;

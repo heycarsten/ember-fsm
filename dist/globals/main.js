@@ -626,7 +626,7 @@ exports["default"] = Ember.Object.extend({
       this.set('target', this);
     }
 
-    if (!events.error) {
+    if (events && !events.error) {
       events.error = { transition: { $all: 'failed' } };
     }
 
@@ -900,7 +900,7 @@ var computed = window.Ember.computed;
 var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
 
 exports["default"] = Mixin.create({
-  events:       required(),
+  stateEvents:  required(),
   states:       null,
   isLoading:    computed.oneWay('__fsm__.isTransitioning'),
   currentState: computed.oneWay('__fsm__.currentState'),
@@ -911,7 +911,7 @@ exports["default"] = Mixin.create({
     var fsm;
 
     params.target = this;
-    params.events = this.get('events');
+    params.events = this.get('stateEvents');
     params.states = this.get('states');
 
     fsm = Machine.create(params);
@@ -962,22 +962,22 @@ var EXT_CALLBACK_SOURCES = {
 };
 
 exports["default"] = Ember.Object.extend({
-  target:        null,
-  machine:       null,
-  fromState:     null,
-  toState:       null,
-  event:         null,
-  eventArgs:     null,
-  beforeEvent:   null,
-  willEnter:     null,
-  didEnter:      null,
-  willExit:      null,
-  didExit:       null,
-  afterEvent:    null,
-  isAborted:     null,
-  isResolving:   null,
-  isResolved:    computed.not('isResolving'),
-  isRejected:    null,
+  target:      null,
+  machine:     null,
+  fromState:   null,
+  toState:     null,
+  event:       null,
+  eventArgs:   null,
+  beforeEvent: null,
+  willEnter:   null,
+  didEnter:    null,
+  willExit:    null,
+  didExit:     null,
+  afterEvent:  null,
+  isAborted:   null,
+  isResolving: null,
+  isResolved:  computed.not('isResolving'),
+  isRejected:  null,
 
   init: function() {
     this.set('resolutions', {});
@@ -1026,11 +1026,11 @@ exports["default"] = Ember.Object.extend({
   },
 
   callbacksFor: function(transitionEvent) {
-    var callbacks  = [];
-    var machine    = this.get('machine');
-    var def        = machine.definition;
-    var target     = this.get('target');
-    var sources    = [this];
+    var callbacks = [];
+    var machine   = this.get('machine');
+    var def       = machine.definition;
+    var target    = this.get('target');
+    var sources   = [this];
     var sourceCallbackNames;
     var extSource;
     var source;

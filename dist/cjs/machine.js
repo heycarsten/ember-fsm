@@ -24,7 +24,7 @@ exports["default"] = Ember.Object.extend({
       this.set('target', this);
     }
 
-    if (!events.error) {
+    if (events && !events.error) {
       events.error = { transition: { $all: 'failed' } };
     }
 

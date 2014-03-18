@@ -630,7 +630,7 @@ define("ember-fsm/definition",
           this.set('target', this);
         }
 
-        if (!events.error) {
+        if (events && !events.error) {
           events.error = { transition: { $all: 'failed' } };
         }
 
@@ -910,7 +910,7 @@ define("ember-fsm/definition",
     var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
-      events:       required(),
+      stateEvents:  required(),
       states:       null,
       isLoading:    computed.oneWay('__fsm__.isTransitioning'),
       currentState: computed.oneWay('__fsm__.currentState'),
@@ -921,7 +921,7 @@ define("ember-fsm/definition",
         var fsm;
 
         params.target = this;
-        params.events = this.get('events');
+        params.events = this.get('stateEvents');
         params.states = this.get('states');
 
         fsm = Machine.create(params);
@@ -974,22 +974,22 @@ define("ember-fsm/definition",
     };
 
     __exports__["default"] = Ember.Object.extend({
-      target:        null,
-      machine:       null,
-      fromState:     null,
-      toState:       null,
-      event:         null,
-      eventArgs:     null,
-      beforeEvent:   null,
-      willEnter:     null,
-      didEnter:      null,
-      willExit:      null,
-      didExit:       null,
-      afterEvent:    null,
-      isAborted:     null,
-      isResolving:   null,
-      isResolved:    computed.not('isResolving'),
-      isRejected:    null,
+      target:      null,
+      machine:     null,
+      fromState:   null,
+      toState:     null,
+      event:       null,
+      eventArgs:   null,
+      beforeEvent: null,
+      willEnter:   null,
+      didEnter:    null,
+      willExit:    null,
+      didExit:     null,
+      afterEvent:  null,
+      isAborted:   null,
+      isResolving: null,
+      isResolved:  computed.not('isResolving'),
+      isRejected:  null,
 
       init: function() {
         this.set('resolutions', {});
@@ -1038,11 +1038,11 @@ define("ember-fsm/definition",
       },
 
       callbacksFor: function(transitionEvent) {
-        var callbacks  = [];
-        var machine    = this.get('machine');
-        var def        = machine.definition;
-        var target     = this.get('target');
-        var sources    = [this];
+        var callbacks = [];
+        var machine   = this.get('machine');
+        var def       = machine.definition;
+        var target    = this.get('target');
+        var sources   = [this];
         var sourceCallbackNames;
         var extSource;
         var source;

@@ -8,7 +8,7 @@ describe('FSM.Stateful', function() {
         initialState: 'cool'
       },
 
-      events: {
+      stateEvents: {
         blerp: { transition: { cool: 'herp' } }
       }
     });

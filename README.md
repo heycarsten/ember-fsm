@@ -2,56 +2,7 @@
 
 A promise-aware finite state machine implementation for Ember objects.
 
-## Usage
-
-```js
-var trafficLight = Ember.FSM.Machine.create({
-  initialState: 'off',
-
-  stateEvents: {
-    cycle: {
-      transitions: [
-        { from: 'off',   to: 'red',   after: 'turnedRed' },
-        { from: 'red',   to: 'green', after: 'turnedGreen' },
-        { from: 'green', to: 'amber', after: 'turnedAmber' },
-        { from: 'amber', to: 'red',   after: 'turnedRed' }
-      ]
-    },
-
-    turnOff: {
-      transitions: { from: '$all', to: 'off' }
-    }
-  },
-
-  turnedGreen: function() {
-    return this.waitThenCycle(30);
-  },
-
-  turnedAmber: function() {
-    return this.waitThenCycle(3);
-  },
-
-  turnedRed: function() {
-    return this.waitThenCycle(10);
-  },
-
-  wait: function(seconds) {
-    var fsm = this;
-
-    return new Em.RSVP.Promise(function(resolve) {
-      Em.run.later(function() {
-        fsm.send('cycle').then(function() {
-          if (fsm.get('shouldPowerDown')) {
-            fsm.send('powerDown');
-          }
-        });
-      }, seconds * 1000);
-    });
-  }
-});
-
-trafficLight.send('cycle');
-```
+<a class="jsbin-embed" href="http://emberjs.jsbin.com/kisuk/1/embed?js,output">Ember.FSM Traffic Light</a><script src="http://static.jsbin.com/js/embed.js"></script>
 
 ## Callbacks
 

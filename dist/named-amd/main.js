@@ -20,8 +20,8 @@ define("ember-fsm/definition",
     var DID_ENTERS     = ['didEnter', 'enter', 'action'];
     var WILL_EXITS     = ['willExit'];
     var DID_EXITS      = ['didExit', 'exit'];
-    var DO_IFS         = ['doIf', 'runIf', 'guard'];
-    var DO_UNLESSES    = ['doUnless', 'runUnless', 'unless'];
+    var DO_IFS         = ['doIf', 'guard'];
+    var DO_UNLESSES    = ['doUnless', 'unless'];
     var FROMS          = ['from', 'fromState', 'fromStates'];
     var TOS            = ['to', 'toState'];
 

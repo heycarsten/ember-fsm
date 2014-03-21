@@ -30,6 +30,25 @@ describe('FSM.Machine', function() {
 
       expect(fsm.get('currentState')).toBe('ready');
     });
+
+    it('does not destruct original definition', function() {
+      var FSM;
+      var fsm0;
+      var fsm1;
+
+      FSM = Em.FSM.Machine.extend({
+        states: { initialState: 'one' },
+        events: {
+          next: { transition: { one: 'two' } }
+        }
+      });
+
+      fsm0 = FSM.create();
+      expect(fsm0.get('currentState')).toBe('one');
+
+      fsm1 = FSM.create();
+      expect(fsm1.get('currentState')).toBe('one');
+    });
   });
 
   describe('transitionFor', function() {

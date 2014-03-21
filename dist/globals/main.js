@@ -2,6 +2,7 @@
 "use strict";
 var ownPropertiesOf = _dereq_("./utils").ownPropertiesOf;
 var toArray = _dereq_("./utils").toArray;
+var $ = window.Ember.$;
 
 exports["default"] = Definition;
 
@@ -80,8 +81,8 @@ function Definition(payload) {
     throw new TypeError('"states" must be an object');
   }
 
-  this._payload = payload;
-  this._statesDef = destructDefinition(payload.states || {}, 'states');
+  this._payload = $.extend(true, {}, payload);
+  this._statesDef = destructDefinition(this._payload.states || {}, 'states');
   this._stateByName = {};
   this._statesByPrefix = {};
   this._eventByName = {};

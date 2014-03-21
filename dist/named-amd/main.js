@@ -1,9 +1,10 @@
 define("ember-fsm/definition",
-  ["./utils","exports"],
-  function(__dependency1__, __exports__) {
+  ["./utils","ember","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var ownPropertiesOf = __dependency1__.ownPropertiesOf;
     var toArray = __dependency1__.toArray;
+    var $ = __dependency2__.$;
 
     __exports__["default"] = Definition;
 
@@ -82,8 +83,8 @@ define("ember-fsm/definition",
         throw new TypeError('"states" must be an object');
       }
 
-      this._payload = payload;
-      this._statesDef = destructDefinition(payload.states || {}, 'states');
+      this._payload = $.extend(true, {}, payload);
+      this._statesDef = destructDefinition(this._payload.states || {}, 'states');
       this._stateByName = {};
       this._statesByPrefix = {};
       this._eventByName = {};

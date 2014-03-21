@@ -1,6 +1,7 @@
 "use strict";
 var ownPropertiesOf = require("./utils").ownPropertiesOf;
 var toArray = require("./utils").toArray;
+var $ = require("ember").$;
 
 exports["default"] = Definition;
 
@@ -79,8 +80,8 @@ function Definition(payload) {
     throw new TypeError('"states" must be an object');
   }
 
-  this._payload = payload;
-  this._statesDef = destructDefinition(payload.states || {}, 'states');
+  this._payload = $.extend(true, {}, payload);
+  this._statesDef = destructDefinition(this._payload.states || {}, 'states');
   this._stateByName = {};
   this._statesByPrefix = {};
   this._eventByName = {};

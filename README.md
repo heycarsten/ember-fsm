@@ -125,15 +125,17 @@ fsm.send('sleep');
 Here is the series of transition events that will occurr and the corresponding
 callbacks that will run and where they can be defined:
 
-| Current State | Event           | Runs callbacks                        |
-|:--------------|:----------------|:--------------------------------------|
-| awake         | `beforeEvent`   | `before` on events and transitions    |
-| awake         | `willExit`      | `willExit` on states and transitions  |
-| awake         | `willEnter`     | `willEnter` on states and transitions |
-| sleeping      | `_setNewState_` | _internal_                            |
-| sleeping      | `didExit`       | `didExit` on states and transitions   |
-| sleeping      | `didEnter`      | `didEnter` on states and transitions  |
-| sleeping      | `afterEvent`    | `after` on events and transitions     |
+| Current State | Is Active | Event                    | Runs callbacks                        |
+|:--------------|:----------|:-------------------------|:--------------------------------------|
+| awake         | **false** | `beforeEvent`            | `before` on events and transitions    |
+| awake         | **true**  | `_activateTransition     | _internal_                            |
+| awake         | **true**  | `willExit`               | `willExit` on states and transitions  |
+| awake         | **true**  | `willEnter`              | `willEnter` on states and transitions |
+| sleeping      | **true**  | `_setNewState_`          | _internal_                            |
+| sleeping      | **true**  | `didExit`                | `didExit` on states and transitions   |
+| sleeping      | **true**  | `didEnter`               | `didEnter` on states and transitions  |
+| sleeping      | **false** | `_deactivateTransition_` | _internal_                            |
+| sleeping      | **false** | `afterEvent`             | `after` on events and transitions     |
 
 Some of the event names above also have aliases:
 

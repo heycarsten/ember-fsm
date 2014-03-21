@@ -286,6 +286,84 @@ describe('FSM.Machine', function() {
     });
   });
 
+  describe ('transition activation', function() {
+    var fsm;
+    var beforeResolver;
+    var beforePromise;
+    var enterResolver;
+    var enterPromise;
+    var afterResolver;
+    var afterPromise;
+
+    beforeEach(function() {
+      beforePromise = new Em.RSVP.Promise(function(resolve) {
+        beforeResolver = resolve;
+      });
+
+      enterPromise = new Em.RSVP.Promise(function(resolve) {
+        enterResolver = resolve;
+      });
+
+      afterPromise = new Em.RSVP.Promise(function(resolve) {
+        afterResolver = resolve;
+      });
+
+      fsm = createMachine({
+        states: {
+          initialState: 'one'
+        },
+
+        events: {
+          next: {
+            transition: { one: 'two',
+              before: 'resolveBefore',
+              enter: 'resolveEnter',
+              after: 'resolveAfter'
+            }
+          }
+        },
+
+        resolveBefore: function() {
+          return beforePromise;
+        },
+
+        resolveEnter: function() {
+          return enterPromise;
+        },
+
+        resolveAfter: function() {
+          return afterPromise;
+        }
+      });
+    });
+
+    it('does not activate while resolving before', function(done) {
+      expect(fsm.get('isTransitioning')).toBe(false);
+
+      fsm.send('next');
+
+      Em.run.next(function() {
+        expect(fsm.get('isTransitioning')).toBe(false);
+        beforeResolver();
+
+        Em.run.next(function() {
+          expect(fsm.get('isTransitioning')).toBe(true);
+          enterResolver();
+
+          Em.run.next(function() {
+            expect(fsm.get('isTransitioning')).toBe(false);
+            afterResolver();
+
+            Em.run.next(function() {
+              expect(fsm.get('isTransitioning')).toBe(false);
+              done();
+            });
+          });
+        });
+      });
+    });
+  });
+
   describe('send (while active)', function() {
     var fsm;
 

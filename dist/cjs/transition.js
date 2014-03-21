@@ -9,11 +9,13 @@ var withPromise = require("./utils").withPromise;
 
 var CALLBACKS = [
   'beforeEvent',
+  '_activateTransition_',
   'willExit',
   'willEnter',
   '_setNewState_',
   'didExit',
   'didEnter',
+  '_deactivateTransition_',
   'afterEvent'
 ];
 

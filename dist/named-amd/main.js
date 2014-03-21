@@ -671,8 +671,6 @@ define("ember-fsm/definition",
           );
         }
 
-        this.pushActiveTransition(transition);
-
         promise = transition.perform();
 
         promise.catch(function(error) {
@@ -681,10 +679,6 @@ define("ember-fsm/definition",
             error: error,
             transition: transition
           });
-        });
-
-        promise.finally(function() {
-          fsm.removeActiveTransition(transition);
         });
 
         return promise;
@@ -831,6 +825,14 @@ define("ember-fsm/definition",
         this.set('currentState', transition.get('toState'));
       },
 
+      _activateTransition_: function(transition) {
+        this.pushActiveTransition(transition);
+      },
+
+      _deactivateTransition_: function(transition) {
+        this.removeActiveTransition(transition);
+      },
+
       _setupIsStateAccessors: on('init', function() {
         var mixin = {};
         var prefixes = this.definition.stateNamespaces.slice(0);
@@ -956,11 +958,13 @@ define("ember-fsm/definition",
 
     var CALLBACKS = [
       'beforeEvent',
+      '_activateTransition_',
       'willExit',
       'willEnter',
       '_setNewState_',
       'didExit',
       'didEnter',
+      '_deactivateTransition_',
       'afterEvent'
     ];
 

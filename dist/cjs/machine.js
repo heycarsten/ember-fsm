@@ -65,8 +65,6 @@ exports["default"] = Ember.Object.extend({
       );
     }
 
-    this.pushActiveTransition(transition);
-
     promise = transition.perform();
 
     promise.catch(function(error) {
@@ -75,10 +73,6 @@ exports["default"] = Ember.Object.extend({
         error: error,
         transition: transition
       });
-    });
-
-    promise.finally(function() {
-      fsm.removeActiveTransition(transition);
     });
 
     return promise;
@@ -223,6 +217,14 @@ exports["default"] = Ember.Object.extend({
 
   _setNewState_: function(transition) {
     this.set('currentState', transition.get('toState'));
+  },
+
+  _activateTransition_: function(transition) {
+    this.pushActiveTransition(transition);
+  },
+
+  _deactivateTransition_: function(transition) {
+    this.removeActiveTransition(transition);
   },
 
   _setupIsStateAccessors: on('init', function() {

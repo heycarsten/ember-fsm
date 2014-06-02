@@ -40,7 +40,7 @@ describe('FSM.Transition', function() {
         var t = fsm.transitionFor('leaveKitty');
 
         t.callbacksFor('didEnter');
-      }).toThrowError(/did not find callback .+ on target/);
+      }).toThrowError(/Assertion Failed: Callback .+ on target/);
     });
   });
 
@@ -82,6 +82,43 @@ describe('FSM.Transition', function() {
 
       expect(resolutions['state:animateSmile']).toBe('i am smile very');
       expect(resolutions['transition:playPurr']).toBe('i am purr so many');
+    });
+  });
+
+  describe('inline callback', function() {
+    var animateSmile;
+    var fsm;
+    var t;
+    var p;
+
+    beforeEach(function(done) {
+      animateSmile = sinon.spy(function() {
+        return 'i am smile very';
+      });
+
+      fsm = createCallbackMachine({
+        states: {
+          initialState: 'okay',
+          happy: {
+            didEnter: animateSmile
+          }
+        }
+      });
+
+      t = fsm.transitionFor('cuddleKitty');
+      p = t.callback('didEnter');
+
+      p.then(done);
+    });
+
+    it('merges all callbacks into one promise for the entire transition event', function() {
+      expect(animateSmile.calledOnce).toBe(true);
+    });
+
+    it('tracks resolutions in the transition', function() {
+      var resolutions = t.resolutions.didEnter;
+
+      expect(resolutions['state:inline-1-0']).toBe('i am smile very');
     });
   });
 

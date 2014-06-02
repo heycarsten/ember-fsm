@@ -128,7 +128,7 @@ callbacks that will run and where they can be defined:
 | Current State | Is Active | Event                    | Runs callbacks                        |
 |:--------------|:----------|:-------------------------|:--------------------------------------|
 | awake         | **false** | `beforeEvent`            | `before` on events and transitions    |
-| awake         | **true**  | `_activateTransition     | _internal_                            |
+| awake         | **true**  | `_activateTransition_`   | _internal_                            |
 | awake         | **true**  | `willExit`               | `willExit` on states and transitions  |
 | awake         | **true**  | `willEnter`              | `willEnter` on states and transitions |
 | sleeping      | **true**  | `_setNewState_`          | _internal_                            |
@@ -174,7 +174,7 @@ following boolean accessor properties for you:
 * isInUploadingRequestingUrl
 * isInUploadingSendingData
 * isInProcessing
-* isInProcessingEnqueuiing
+* isInProcessingEnqueuing
 * isInProcessingWorking
 * isInFinished
 

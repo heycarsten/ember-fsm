@@ -307,3 +307,4 @@ Then do what testem tells you to do.
 - [@tildeio](https://github.com/tildeio) & crew for [RSVP](https://github.com/tildeio/rsvp.js) and [Ember](https://github.com/emberjs/ember.js)
 - My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drteeth](https://github.com/drteeth) [@minusfive](https://github.com/minusfive) for reviewing and fiddling with the stuff I make
 - [Unspace](https://unspace.ca) for understanding open source and caring about open source
+- [@ssured](https://github.com/ssured) for adding the ability to define callbacks as inline functions

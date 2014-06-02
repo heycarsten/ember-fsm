@@ -602,6 +602,27 @@ Definition.prototype = {
 };
 },{"./utils":7}],2:[function(_dereq_,module,exports){
 "use strict";
+/*!
+ember-fsm
+(c) 2014 Carsten Nielsen
+License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+*/
+
+var Definition = _dereq_("./definition")["default"] || _dereq_("./definition");
+var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
+var Transition = _dereq_("./transition")["default"] || _dereq_("./transition");
+var Stateful = _dereq_("./stateful")["default"] || _dereq_("./stateful");
+var reject = _dereq_("./reject").reject;
+var utils = _dereq_("./utils")["default"] || _dereq_("./utils");
+
+exports.Definition = Definition;
+exports.Machine = Machine;
+exports.Transition = Transition;
+exports.Stateful = Stateful;
+exports.reject = reject;
+exports.utils = utils;
+},{"./definition":1,"./machine":3,"./reject":4,"./stateful":5,"./transition":6,"./utils":7}],3:[function(_dereq_,module,exports){
+"use strict";
 var Ember = window.Ember["default"] || window.Ember;
 var computed = window.Ember.computed;
 var typeOf = window.Ember.typeOf;
@@ -865,28 +886,7 @@ exports["default"] = Ember.Object.extend({
     this.reopen(mixin);
   })
 });
-},{"./definition":1,"./transition":6,"./utils":7}],3:[function(_dereq_,module,exports){
-"use strict";
-/*!
-ember-fsm
-(c) 2014 Carsten Nielsen
-License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
-*/
-
-var Definition = _dereq_("./definition")["default"] || _dereq_("./definition");
-var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
-var Transition = _dereq_("./transition")["default"] || _dereq_("./transition");
-var Stateful = _dereq_("./stateful")["default"] || _dereq_("./stateful");
-var reject = _dereq_("./reject").reject;
-var utils = _dereq_("./utils")["default"] || _dereq_("./utils");
-
-exports.Definition = Definition;
-exports.Machine = Machine;
-exports.Transition = Transition;
-exports.Stateful = Stateful;
-exports.reject = reject;
-exports.utils = utils;
-},{"./definition":1,"./machine":2,"./reject":4,"./stateful":5,"./transition":6,"./utils":7}],4:[function(_dereq_,module,exports){
+},{"./definition":1,"./transition":6,"./utils":7}],4:[function(_dereq_,module,exports){
 "use strict";
 var Ember = window.Ember["default"] || window.Ember;
 
@@ -935,7 +935,7 @@ exports["default"] = Mixin.create({
     return fsm.send.apply(fsm, arguments);
   }
 });
-},{"./machine":2}],6:[function(_dereq_,module,exports){
+},{"./machine":3}],6:[function(_dereq_,module,exports){
 "use strict";
 var Ember = window.Ember["default"] || window.Ember;
 var RSVP = window.Ember.RSVP["default"] || window.Ember.RSVP;
@@ -1266,6 +1266,6 @@ exports.isObject = isObject;function getFirst(obj, properties) {
 }
 
 exports.getFirst = getFirst;
-},{}]},{},[3])
-(3)
+},{}]},{},[2])
+(2)
 });

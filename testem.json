@@ -1,12 +1,12 @@
 {
   "framework": "jasmine2",
   "src_files": [
-    "app/components/jquery/dist/jquery.js",
-    "app/components/handlebars/handlebars.js",
-    "app/components/ember/ember.js",
-    "app/components/sinon/index.js",
-    "dist/globals/main.js",
-    "http://localhost:4200/globals/main.js",
+    "vendor/jquery/dist/jquery.js",
+    "vendor/handlebars/handlebars.js",
+    "vendor/ember/ember.js",
+    "vendor/sinon/index.js",
+    "dist/globals/ember-fsm.js",
+    "http://localhost:4200/globals/ember-fsm.js",
     "test/spec-helper.js",
     "test/**/*-spec.js"
   ]

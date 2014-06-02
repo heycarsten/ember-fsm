@@ -38,7 +38,7 @@ _A wild [traffic signal demo](http://emberjs.jsbin.com/kisuk/1) appears!_
 
 The most recent builds are available in the [`dist`](/dist) directory. If you
 just want to drop `Ember.FSM` into your app and start using it, you're probably
-looking for: [`dist/globals/main.js`](/dist/globals/main.js).
+looking for: [`dist/globals/ember-fsm.js`](/dist/globals/ember-fsm.js).
 
 ### Defining a State Machine
 

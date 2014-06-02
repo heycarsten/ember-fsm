@@ -602,7 +602,32 @@ define("ember-fsm/definition",
         this._unwindTransitions();
       }
     };
-  });define("ember-fsm/machine",
+  });
+define("ember-fsm",
+  ["./definition","./machine","./transition","./stateful","./reject","./utils","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __exports__) {
+    "use strict";
+    /*!
+    ember-fsm
+    (c) 2014 Carsten Nielsen
+    License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
+    */
+
+    var Definition = __dependency1__["default"] || __dependency1__;
+    var Machine = __dependency2__["default"] || __dependency2__;
+    var Transition = __dependency3__["default"] || __dependency3__;
+    var Stateful = __dependency4__["default"] || __dependency4__;
+    var reject = __dependency5__.reject;
+    var utils = __dependency6__["default"] || __dependency6__;
+
+    __exports__.Definition = Definition;
+    __exports__.Machine = Machine;
+    __exports__.Transition = Transition;
+    __exports__.Stateful = Stateful;
+    __exports__.reject = reject;
+    __exports__.utils = utils;
+  });
+define("ember-fsm/machine",
   ["ember","./utils","./transition","./definition","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __exports__) {
     "use strict";
@@ -869,30 +894,8 @@ define("ember-fsm/definition",
         this.reopen(mixin);
       })
     });
-  });define("ember-fsm",
-  ["./definition","./machine","./transition","./stateful","./reject","./utils","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __exports__) {
-    "use strict";
-    /*!
-    ember-fsm
-    (c) 2014 Carsten Nielsen
-    License: https://github.com/heycarsten/ember-fsm/blob/master/LICENSE
-    */
-
-    var Definition = __dependency1__["default"] || __dependency1__;
-    var Machine = __dependency2__["default"] || __dependency2__;
-    var Transition = __dependency3__["default"] || __dependency3__;
-    var Stateful = __dependency4__["default"] || __dependency4__;
-    var reject = __dependency5__.reject;
-    var utils = __dependency6__["default"] || __dependency6__;
-
-    __exports__.Definition = Definition;
-    __exports__.Machine = Machine;
-    __exports__.Transition = Transition;
-    __exports__.Stateful = Stateful;
-    __exports__.reject = reject;
-    __exports__.utils = utils;
-  });define("ember-fsm/reject",
+  });
+define("ember-fsm/reject",
   ["ember","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
@@ -903,7 +906,8 @@ define("ember-fsm/definition",
     }
 
     __exports__.reject = reject;
-  });define("ember-fsm/stateful",
+  });
+define("ember-fsm/stateful",
   ["ember","./machine","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
@@ -945,7 +949,8 @@ define("ember-fsm/definition",
         return fsm.send.apply(fsm, arguments);
       }
     });
-  });define("ember-fsm/transition",
+  });
+define("ember-fsm/transition",
   ["ember","ember/rsvp","./utils","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";
@@ -1178,7 +1183,8 @@ define("ember-fsm/definition",
         );
       }
     });
-  });define("ember-fsm/utils",
+  });
+define("ember-fsm/utils",
   ["ember/string","ember/rsvp","ember","exports"],
   function(__dependency1__, __dependency2__, __dependency3__, __exports__) {
     "use strict";

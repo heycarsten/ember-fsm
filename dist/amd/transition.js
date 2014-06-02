@@ -7,8 +7,11 @@ define(
     var computed = __dependency1__.computed;
     var inspect = __dependency1__.inspect;
     var get = __dependency1__.get;
+    var typeOf = __dependency1__.typeOf;
+    var assert = __dependency1__.assert;
     var Promise = __dependency2__.Promise;
     var withPromise = __dependency3__.withPromise;
+    var bind = __dependency3__.bind;
 
     var CALLBACKS = [
       'beforeEvent',
@@ -110,19 +113,6 @@ define(
         var i;
         var j;
 
-        function fetchCallback(name) {
-          var fn = get(target, name);
-
-          if (!fn) {
-            throw new Error('did not find callback "' + name + '" on target: ' +
-            target);
-          }
-
-          return function() {
-            return fn.apply(target, arguments);
-          };
-        }
-
         if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
           if (extSource === 'event') {
             sources.push(def.lookupEvent(this.get(extSource)));
@@ -137,13 +127,21 @@ define(
 
           for (j = 0; j < sourceCallbackNames.length; j++) {
             callbackName = sourceCallbackNames[j];
-            callbackFn   = fetchCallback(callbackName);
+
+            if (typeOf(callbackName) === 'function') {
+              callbackFn   = callbackName;
+              callbackName = '_inline:' + i + '-' + j + '_';
+            } else {
+              callbackFn   = get(target, callbackName);
+              assert('Callback "' + name + '" on target ' + target + ' should be a function, but is a ' + typeOf(callbackFn), typeOf(callbackFn) === 'function');
+            }
+
             callbackVia  = source === this ? 'transition' : 'state';
 
             callbacks.push({
               via:  callbackVia,
               name: callbackName,
-              fn:   callbackFn,
+              fn:   bind(target, callbackFn),
               key:  (callbackVia + ':' + callbackName)
             });
           }

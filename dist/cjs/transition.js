@@ -4,8 +4,11 @@ var RSVP = require("ember/rsvp")["default"] || require("ember/rsvp");
 var computed = require("ember").computed;
 var inspect = require("ember").inspect;
 var get = require("ember").get;
+var typeOf = require("ember").typeOf;
+var assert = require("ember").assert;
 var Promise = require("ember/rsvp").Promise;
 var withPromise = require("./utils").withPromise;
+var bind = require("./utils").bind;
 
 var CALLBACKS = [
   'beforeEvent',
@@ -107,19 +110,6 @@ exports["default"] = Ember.Object.extend({
     var i;
     var j;
 
-    function fetchCallback(name) {
-      var fn = get(target, name);
-
-      if (!fn) {
-        throw new Error('did not find callback "' + name + '" on target: ' +
-        target);
-      }
-
-      return function() {
-        return fn.apply(target, arguments);
-      };
-    }
-
     if ((extSource = EXT_CALLBACK_SOURCES[transitionEvent])) {
       if (extSource === 'event') {
         sources.push(def.lookupEvent(this.get(extSource)));
@@ -134,13 +124,21 @@ exports["default"] = Ember.Object.extend({
 
       for (j = 0; j < sourceCallbackNames.length; j++) {
         callbackName = sourceCallbackNames[j];
-        callbackFn   = fetchCallback(callbackName);
+
+        if (typeOf(callbackName) === 'function') {
+          callbackFn   = callbackName;
+          callbackName = '_inline:' + i + '-' + j + '_';
+        } else {
+          callbackFn   = get(target, callbackName);
+          assert('Callback "' + name + '" on target ' + target + ' should be a function, but is a ' + typeOf(callbackFn), typeOf(callbackFn) === 'function');
+        }
+
         callbackVia  = source === this ? 'transition' : 'state';
 
         callbacks.push({
           via:  callbackVia,
           name: callbackName,
-          fn:   callbackFn,
+          fn:   bind(target, callbackFn),
           key:  (callbackVia + ':' + callbackName)
         });
       }

@@ -96,4 +96,10 @@ exports.isObject = isObject;function getFirst(obj, properties) {
   return value;
 }
 
-exports.getFirst = getFirst;
+exports.getFirst = getFirst;function bind(target, fn) {
+  return function() {
+    return fn.apply(target, arguments);
+  };
+}
+
+exports.bind = bind;

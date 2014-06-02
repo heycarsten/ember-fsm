@@ -99,5 +99,11 @@ define(
       return value;
     }
 
-    __exports__.getFirst = getFirst;
+    __exports__.getFirst = getFirst;function bind(target, fn) {
+      return function() {
+        return fn.apply(target, arguments);
+      };
+    }
+
+    __exports__.bind = bind;
   });

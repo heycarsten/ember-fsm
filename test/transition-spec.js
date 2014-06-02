@@ -118,7 +118,7 @@ describe('FSM.Transition', function() {
     it('tracks resolutions in the transition', function() {
       var resolutions = t.resolutions.didEnter;
 
-      expect(resolutions['state:inline-1-0']).toBe('i am smile very');
+      expect(resolutions['state:_inline:1-0_']).toBe('i am smile very');
     });
   });
 

@@ -57,7 +57,7 @@ describe('FSM.Transition', function() {
       });
 
       playPurr = sinon.spy(function() {
-        return Em.RSVP.resolve('i am purr so many')
+        return Em.RSVP.resolve('i am purr so many');
       });
 
       fsm = createCallbackMachine({
@@ -176,7 +176,7 @@ describe('FSM.Transition', function() {
       var t = fsm.transitionFor('wakeKitty');
 
       t.perform().then(function() {
-        expect(t.get('isResolving', false))
+        expect(t.get('isResolving', false));
         done();
       });
     });
@@ -242,7 +242,7 @@ describe('FSM.Transition', function() {
 
     it('is false if the transition resolves', function(done) {
       fsm.set('currentState', 'happy');
-      t = fsm.transitionFor('cuddleKitty')
+      t = fsm.transitionFor('cuddleKitty');
 
       t.perform().then(function() {
         Em.run.next(function() {

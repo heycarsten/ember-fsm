@@ -1,7 +1,7 @@
 {
   "name": "ember-fsm",
   "main": "dist/cjs/main.js",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "A promise-aware finite state machine implementation for Ember objects",
   "author": "Carsten Nielsen <heycarsten@gmail.com>",
   "license": "MIT",

@@ -197,3 +197,19 @@ describe('utils.getFirst', function() {
     expect(val).toBe(2);
   });
 });
+
+describe('utils.bind', function() {
+  var x = { y: 1 };
+
+  it('changes the function context to the supplied target', function() {
+    var fn = utils.bind(x, function() {
+      this.y = 2;
+    });
+
+    expect(x.y).toBe(1);
+
+    fn();
+
+    expect(x.y).toBe(2);
+  });
+});

@@ -8,8 +8,8 @@
   "homepage": "https://github.com/heycarsten/ember-fsm",
   "devDependencies": {
     "testem": "^0.6.9",
-    "broccoli": "^0.4.1",
-    "broccoli-dist-es6-module": "^0.1.8"
+    "broccoli": "^0.12.0",
+    "broccoli-dist-es6-module": "^0.2.0"
   },
   "dependencies": {},
   "scripts": {

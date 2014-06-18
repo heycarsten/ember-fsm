@@ -1,9 +1,10 @@
 describe('FSM.Stateful', function() {
   var so;
   var fsm;
+  var sO;
 
   beforeEach(function() {
-    var sO = Em.Object.extend(Em.FSM.Stateful, {
+    sO = Em.Object.extend(Em.FSM.Stateful, {
       states: {
         initialState: 'cool'
       },
@@ -23,6 +24,11 @@ describe('FSM.Stateful', function() {
 
   it('provides currentState', function() {
     expect(so.get('currentState')).toBe('cool');
+  });
+
+  it('can override the initial state', function() {
+    so = sO.create({initialState: 'herp'});
+    expect(so.get('currentState')).toBe('herp');
   });
 
   it('provides isLoading', function() {

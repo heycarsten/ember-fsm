@@ -7,6 +7,7 @@ var Machine = require("./machine")["default"] || require("./machine");
 exports["default"] = Mixin.create({
   stateEvents:  required(),
   states:       null,
+  initialState: null,
   isLoading:    computed.oneWay('__fsm__.isTransitioning'),
   currentState: computed.oneWay('__fsm__.currentState'),
 
@@ -18,6 +19,7 @@ exports["default"] = Mixin.create({
     params.target = this;
     params.events = this.get('stateEvents');
     params.states = this.get('states');
+    params.initialState = this.get('initialState');
 
     fsm = Machine.create(params);
 

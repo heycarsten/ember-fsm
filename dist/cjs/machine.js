@@ -14,6 +14,7 @@ exports["default"] = Ember.Object.extend({
   states:            null,
   activeTransitions: null,
   currentState:      null,
+  initialState:      null,
 
   init: function() {
     var target = this.get('target');
@@ -37,7 +38,7 @@ exports["default"] = Ember.Object.extend({
 
     this.set('stateNames',   this.definition.stateNames);
     this.set('eventNames',   this.definition.eventNames);
-    this.set('currentState', this.definition.initialState);
+    this.set('currentState', this.get('initialState') || this.definition.initialState);
   },
 
   send: function(event) {

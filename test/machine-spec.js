@@ -31,6 +31,21 @@ describe('FSM.Machine', function() {
       expect(fsm.get('currentState')).toBe('ready');
     });
 
+    it('sets the currentState to the overruled initialState', function() {
+      var fsm = createMachine({
+        initialState: 'done',
+        states: {
+          initialState: 'ready',
+        },
+        events: {
+          one: { transition: { ready: 'a' } },
+          two: { transition: { done: 'b' } },
+        }
+      });
+
+      expect(fsm.get('currentState')).toBe('done');
+    });
+
     it('does not destruct original definition', function() {
       var FSM;
       var fsm0;

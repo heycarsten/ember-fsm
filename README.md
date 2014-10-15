@@ -100,7 +100,7 @@ following macros can be used in transition definitions:
 | Macro      | Description                   |
 |:-----------|:------------------------------|
 | `$all`     | Expands to all known states.  |
-| `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` | 
+| `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` |
 | `$initial` | Expands to the initial state. |
 
 ### Transition Guarding
@@ -277,6 +277,14 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
 });
 ```
 
+## Building
+
+```
+cd my/fork/of/ember-fsm
+rm -rf dist
+broccoli build dist
+```
+
 ## Contributing
 
 Install Node.js and NPM, there are packages and binaries on the
@@ -284,7 +292,7 @@ Install Node.js and NPM, there are packages and binaries on the
 
 ```sh
 cd my/fork/of/ember-fsm
-npm install -g broccoli-cli
+npm install -g broccoli-cli testem
 npm install
 bower install
 broccoli serve

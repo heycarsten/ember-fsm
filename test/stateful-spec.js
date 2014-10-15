@@ -5,11 +5,11 @@ describe('FSM.Stateful', function() {
 
   beforeEach(function() {
     sO = Em.Object.extend(Em.FSM.Stateful, {
-      states: {
+      fsmStates: {
         initialState: 'cool'
       },
 
-      stateEvents: {
+      fsmEvents: {
         blerp: { transition: { cool: 'herp' } }
       }
     });

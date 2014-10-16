@@ -100,7 +100,7 @@ following macros can be used in transition definitions:
 | Macro      | Description                   |
 |:-----------|:------------------------------|
 | `$all`     | Expands to all known states.  |
-| `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` | 
+| `$same`    | Expands to the same state as the from state. `transition: { sleeping: '$same' }` |
 | `$initial` | Expands to the initial state. |
 
 ### Transition Guarding
@@ -185,6 +185,9 @@ want to use `Ember.FSM.Stateful` over sub-classing `Ember.FSM.Machine`. This way
 you can formalize a state workflow around something like file uploads where you
 might have to incorporate three different proceesses into on user experience.
 
+Note states and events are renamed in the mixin to `fsmStates` and `fsmEvents`
+respectively, to avoid conflict with core Ember properties.
+
 Building these sorts of workflows implicitly as-you-code-along can be a recipie
 for massive sadness. So why be sad? Formalize that workflow! Here's an example
 of how adding `Ember.FSM.Stateful` to a controller can remove a lot of the
@@ -201,11 +204,11 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
     }
   },
 
-  states: {
+  fsmStates: {
     initialState: 'nofile'
   },
 
-  stateEvents: {
+  fsmEvents: {
     addFile: {
       transitions: {
         from:   ['nofile', 'failed'],
@@ -277,6 +280,14 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
 });
 ```
 
+## Building
+
+```
+cd my/fork/of/ember-fsm
+rm -rf dist
+broccoli build dist
+```
+
 ## Contributing
 
 Install Node.js and NPM, there are packages and binaries on the
@@ -284,7 +295,7 @@ Install Node.js and NPM, there are packages and binaries on the
 
 ```sh
 cd my/fork/of/ember-fsm
-npm install -g broccoli-cli
+npm install -g broccoli-cli testem
 npm install
 bower install
 broccoli serve

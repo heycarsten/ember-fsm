@@ -899,12 +899,11 @@ exports.reject = reject;
 },{}],5:[function(_dereq_,module,exports){
 "use strict";
 var Mixin = window.Ember.Mixin;
-var required = window.Ember.required;
 var computed = window.Ember.computed;
 var Machine = _dereq_("./machine")["default"] || _dereq_("./machine");
 
 exports["default"] = Mixin.create({
-  fsmEvents:    required(),
+  fsmEvents:    null,
   fsmStates:    null,
   initialState: null,
   isLoading:    computed.oneWay('__fsm__.isTransitioning'),

@@ -1,11 +1,10 @@
 "use strict";
 var Mixin = require("ember").Mixin;
-var required = require("ember").required;
 var computed = require("ember").computed;
 var Machine = require("./machine")["default"] || require("./machine");
 
 exports["default"] = Mixin.create({
-  fsmEvents:    required(),
+  fsmEvents:    null,
   fsmStates:    null,
   initialState: null,
   isLoading:    computed.oneWay('__fsm__.isTransitioning'),

@@ -913,12 +913,11 @@ define("ember-fsm/stateful",
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
     var Mixin = __dependency1__.Mixin;
-    var required = __dependency1__.required;
     var computed = __dependency1__.computed;
     var Machine = __dependency2__["default"] || __dependency2__;
 
     __exports__["default"] = Mixin.create({
-      fsmEvents:    required(),
+      fsmEvents:    null,
       fsmStates:    null,
       initialState: null,
       isLoading:    computed.oneWay('__fsm__.isTransitioning'),

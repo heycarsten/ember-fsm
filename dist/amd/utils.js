@@ -105,5 +105,9 @@ define(
       };
     }
 
-    __exports__.bind = bind;
+    __exports__.bind = bind;function contains(array, item) {
+      return array.indexOf(item) >= 0;
+    }
+
+    __exports__.contains = contains;
   });

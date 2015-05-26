@@ -102,4 +102,8 @@ exports.getFirst = getFirst;function bind(target, fn) {
   };
 }
 
-exports.bind = bind;
+exports.bind = bind;function contains(array, item) {
+  return array.indexOf(item) >= 0;
+}
+
+exports.contains = contains;

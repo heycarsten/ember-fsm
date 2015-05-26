@@ -4,6 +4,7 @@ define("ember-fsm/definition",
     "use strict";
     var ownPropertiesOf = __dependency1__.ownPropertiesOf;
     var toArray = __dependency1__.toArray;
+    var contains = __dependency1__.contains;
     var $ = __dependency2__.$;
 
     __exports__["default"] = Definition;
@@ -338,7 +339,7 @@ define("ember-fsm/definition",
 
         this.isExplicit = true;
 
-        if (!this._statesDef.initialState && !states.contains(this.initialState)) {
+        if (!this._statesDef.initialState && !contains(states, this.initialState)) {
           throw new Error('an explicit list of known states was defined but it ' +
           'does not contain the default initial state "' + this.initialState +
           '", either change initialState or include "' + this.initialState + '" ' +
@@ -497,7 +498,7 @@ define("ember-fsm/definition",
 
         implicitStates = ownPropertiesOf(set);
 
-        if (!implicitStates.contains(this.initialState)) {
+        if (!contains(implicitStates, this.initialState)) {
           throw new Error('initial state "' + this.initialState + '" is not ' +
           'specified in any transitions');
         }
@@ -509,7 +510,7 @@ define("ember-fsm/definition",
         for (i = 0; i < this.stateNames.length; i++) {
           explicitState = this.stateNames[i];
 
-          if (!implicitStates.contains(explicitState)) {
+          if (!contains(implicitStates, explicitState)) {
             throw new Error('' + explicitState + ' state is not used in any ' +
             'transitions; it is explicitly defined to be used');
           }
@@ -547,7 +548,7 @@ define("ember-fsm/definition",
             woundTransition   = woundTransitions[j];
             fromStates        = woundTransition.fromStates;
 
-            if (fromStates.contains(ALL_MACRO) || fromStates.contains(SAME_MACRO)) {
+            if (contains(fromStates, ALL_MACRO) || contains(fromStates, SAME_MACRO)) {
               fromStates = this.stateNames;
             }
 
@@ -637,6 +638,7 @@ define("ember-fsm/machine",
     var inspect = __dependency1__.inspect;
     var on = __dependency1__.on;
     var capitalCamelize = __dependency2__.capitalCamelize;
+    var contains = __dependency2__.contains;
     var Transition = __dependency3__["default"] || __dependency3__;
     var Definition = __dependency4__["default"] || __dependency4__;
 
@@ -680,7 +682,7 @@ define("ember-fsm/machine",
         var promise;
         var sameState;
 
-        if (!this.get('eventNames').contains(event)) {
+        if (!contains(this.get('eventNames'), event)) {
           throw new Ember.Error(
             'unknown state event "' + event + '" try one of [' +
             this.get('eventNames').join(', ') + ']'
@@ -719,7 +721,7 @@ define("ember-fsm/machine",
       },
 
       hasActiveTransition: function(transition) {
-        return this.get('activeTransitions').contains(transition);
+        return contains(this.get('activeTransitions'), transition);
       },
 
       abortActiveTransitions: function() {
@@ -834,7 +836,7 @@ define("ember-fsm/machine",
         var currentState = this.definition.lookupState(this.get('currentState'));
         var states       = this.definition.lookupStates(stateOrPrefix);
 
-        return states.contains(currentState);
+        return contains(states, currentState);
       },
 
       canEnterState: function(state) {
@@ -1291,5 +1293,9 @@ define("ember-fsm/utils",
       };
     }
 
-    __exports__.bind = bind;
+    __exports__.bind = bind;function contains(array, item) {
+      return array.indexOf(item) >= 0;
+    }
+
+    __exports__.contains = contains;
   });

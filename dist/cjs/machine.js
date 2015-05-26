@@ -5,6 +5,7 @@ var typeOf = require("ember").typeOf;
 var inspect = require("ember").inspect;
 var on = require("ember").on;
 var capitalCamelize = require("./utils").capitalCamelize;
+var contains = require("./utils").contains;
 var Transition = require("./transition")["default"] || require("./transition");
 var Definition = require("./definition")["default"] || require("./definition");
 
@@ -48,7 +49,7 @@ exports["default"] = Ember.Object.extend({
     var promise;
     var sameState;
 
-    if (!this.get('eventNames').contains(event)) {
+    if (!contains(this.get('eventNames'), event)) {
       throw new Ember.Error(
         'unknown state event "' + event + '" try one of [' +
         this.get('eventNames').join(', ') + ']'
@@ -87,7 +88,7 @@ exports["default"] = Ember.Object.extend({
   },
 
   hasActiveTransition: function(transition) {
-    return this.get('activeTransitions').contains(transition);
+    return contains(this.get('activeTransitions'), transition);
   },
 
   abortActiveTransitions: function() {
@@ -202,7 +203,7 @@ exports["default"] = Ember.Object.extend({
     var currentState = this.definition.lookupState(this.get('currentState'));
     var states       = this.definition.lookupStates(stateOrPrefix);
 
-    return states.contains(currentState);
+    return contains(states, currentState);
   },
 
   canEnterState: function(state) {

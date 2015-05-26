@@ -8,6 +8,7 @@ define(
     var inspect = __dependency1__.inspect;
     var on = __dependency1__.on;
     var capitalCamelize = __dependency2__.capitalCamelize;
+    var contains = __dependency2__.contains;
     var Transition = __dependency3__["default"] || __dependency3__;
     var Definition = __dependency4__["default"] || __dependency4__;
 
@@ -51,7 +52,7 @@ define(
         var promise;
         var sameState;
 
-        if (!this.get('eventNames').contains(event)) {
+        if (!contains(this.get('eventNames'), event)) {
           throw new Ember.Error(
             'unknown state event "' + event + '" try one of [' +
             this.get('eventNames').join(', ') + ']'
@@ -90,7 +91,7 @@ define(
       },
 
       hasActiveTransition: function(transition) {
-        return this.get('activeTransitions').contains(transition);
+        return contains(this.get('activeTransitions'), transition);
       },
 
       abortActiveTransitions: function() {
@@ -205,7 +206,7 @@ define(
         var currentState = this.definition.lookupState(this.get('currentState'));
         var states       = this.definition.lookupStates(stateOrPrefix);
 
-        return states.contains(currentState);
+        return contains(states, currentState);
       },
 
       canEnterState: function(state) {

@@ -1,6 +1,7 @@
 "use strict";
 var ownPropertiesOf = require("./utils").ownPropertiesOf;
 var toArray = require("./utils").toArray;
+var contains = require("./utils").contains;
 var $ = require("ember").$;
 
 exports["default"] = Definition;
@@ -335,7 +336,7 @@ Definition.prototype = {
 
     this.isExplicit = true;
 
-    if (!this._statesDef.initialState && !states.contains(this.initialState)) {
+    if (!this._statesDef.initialState && !contains(states, this.initialState)) {
       throw new Error('an explicit list of known states was defined but it ' +
       'does not contain the default initial state "' + this.initialState +
       '", either change initialState or include "' + this.initialState + '" ' +
@@ -494,7 +495,7 @@ Definition.prototype = {
 
     implicitStates = ownPropertiesOf(set);
 
-    if (!implicitStates.contains(this.initialState)) {
+    if (!contains(implicitStates, this.initialState)) {
       throw new Error('initial state "' + this.initialState + '" is not ' +
       'specified in any transitions');
     }
@@ -506,7 +507,7 @@ Definition.prototype = {
     for (i = 0; i < this.stateNames.length; i++) {
       explicitState = this.stateNames[i];
 
-      if (!implicitStates.contains(explicitState)) {
+      if (!contains(implicitStates, explicitState)) {
         throw new Error('' + explicitState + ' state is not used in any ' +
         'transitions; it is explicitly defined to be used');
       }
@@ -544,7 +545,7 @@ Definition.prototype = {
         woundTransition   = woundTransitions[j];
         fromStates        = woundTransition.fromStates;
 
-        if (fromStates.contains(ALL_MACRO) || fromStates.contains(SAME_MACRO)) {
+        if (contains(fromStates, ALL_MACRO) || contains(fromStates, SAME_MACRO)) {
           fromStates = this.stateNames;
         }
 

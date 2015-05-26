@@ -213,3 +213,18 @@ describe('utils.bind', function() {
     expect(x.y).toBe(2);
   });
 });
+
+describe('utils.contains', function() {
+  var a = ['a', 'b', 'c'];
+
+  it('returns true if the array contains the provided element', function() {
+    expect(utils.contains(a, 'b')).toBe(true);
+    expect(utils.contains(a, 'c')).toBe(true);
+  });
+
+  it('returns false if the array does not contain the provided element', function() {
+    expect(utils.contains(a, 'x')).toBe(false);
+    expect(utils.contains(a, true)).toBe(false);
+    expect(utils.contains(a, undefined)).toBe(false);
+  });
+});

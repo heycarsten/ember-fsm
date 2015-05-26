@@ -1,6 +1,6 @@
 {
   "name": "ember-fsm",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "license": "MIT",
   "main": "dist/globals/ember-fsm.js",
   "authors": [

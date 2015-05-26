@@ -2,7 +2,7 @@
   "name": "ember-fsm",
   "version": "0.4.1",
   "license": "MIT",
-  "main": "lib/ember-fsm.js",
+  "main": "dist/globals/ember-fsm.js",
   "authors": [
     "Carsten Nielsen <heycarsten@gmail.com>"
   ],

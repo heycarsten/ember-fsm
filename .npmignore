@@ -1,6 +1,7 @@
-vendor
+/lib
+/test
+/tmp
+/vendor
 bower.json
-test
-lib
 Brocfile.js
 testem.json

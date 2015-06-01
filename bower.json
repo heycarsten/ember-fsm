@@ -16,6 +16,7 @@
   "ignore": [
     "bower_components",
     "node_modules",
+    "tmp",
     "package.json",
     "testem.json",
     "test.js",

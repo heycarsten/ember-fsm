@@ -663,7 +663,7 @@ define("ember-fsm/machine",
           events.error = { transition: { $all: 'failed' } };
         }
 
-        this.set('activeTransitions', []);
+        this.set('activeTransitions', Ember.A());
 
         this.definition = new Definition({
           states: states,

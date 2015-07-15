@@ -22,19 +22,19 @@ describe('FSM.Stateful', function() {
     expect(so).toBe(fsm.get('target'));
   });
 
-  it('provides currentState', function() {
-    expect(so.get('currentState')).toBe('cool');
+  it('provides fsmCurrentState', function() {
+    expect(so.get('fsmCurrentState')).toBe('cool');
   });
 
   it('can override the initial state', function() {
-    so = sO.create({initialState: 'herp'});
-    expect(so.get('currentState')).toBe('herp');
+    so = sO.create({fsmInitialState: 'herp'});
+    expect(so.get('fsmCurrentState')).toBe('herp');
   });
 
-  it('provides isLoading', function() {
-    expect(so.get('isLoading')).toBe(false);
+  it('provides fsmIsLoading', function() {
+    expect(so.get('fsmIsLoading')).toBe(false);
     fsm.pushActiveTransition('t0');
-    expect(so.get('isLoading')).toBe(true);
+    expect(so.get('fsmIsLoading')).toBe(true);
   });
 
   it('provides isIn{{State}} accessors', function() {
@@ -45,7 +45,7 @@ describe('FSM.Stateful', function() {
   it('delegates sendStateEvent to fsm.send', function(done) {
     so.sendStateEvent('blerp').then(function() {
       Em.run.next(function() {
-        expect(so.get('currentState')).toBe('herp');
+        expect(so.get('fsmCurrentState')).toBe('herp');
         done();
       });
     });

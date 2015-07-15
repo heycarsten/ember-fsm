@@ -4,11 +4,11 @@ var computed = require("ember").computed;
 var Machine = require("./machine")["default"] || require("./machine");
 
 exports["default"] = Mixin.create({
-  fsmEvents:    null,
-  fsmStates:    null,
-  initialState: null,
-  isLoading:    computed.oneWay('__fsm__.isTransitioning'),
-  currentState: computed.oneWay('__fsm__.currentState'),
+  fsmEvents:       null,
+  fsmStates:       null,
+  fsmInitialState: null,
+  fsmIsLoading:    computed.oneWay('__fsm__.isTransitioning'),
+  fsmCurrentState: computed.oneWay('__fsm__.currentState'),
 
   init: function() {
     var params = {};
@@ -18,7 +18,7 @@ exports["default"] = Mixin.create({
     params.target = this;
     params.events = this.get('fsmEvents');
     params.states = this.get('fsmStates');
-    params.initialState = this.get('initialState');
+    params.initialState = this.get('fsmInitialState');
 
     fsm = Machine.create(params);
 

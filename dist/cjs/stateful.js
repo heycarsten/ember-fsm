@@ -28,9 +28,8 @@ exports["default"] = Mixin.create({
       mixin[prop] = computed.oneWay('__fsm__.' + prop);
     });
 
+    this._super.apply(this, arguments)
     this.reopen(mixin);
-
-    this._super();
   },
 
   sendStateEvent: function() {

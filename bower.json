@@ -24,7 +24,7 @@
   ],
 
   "dependencies": {
-    "ember": ">=1.4 <2"
+    "ember": ">=1.4 <3"
   },
 
   "devDependencies": {

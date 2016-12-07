@@ -1,33 +1,8 @@
 {
   "name": "ember-fsm",
-  "version": "0.6.0",
-  "license": "MIT",
-  "main": "dist/globals/ember-fsm.js",
-  "authors": [
-    "Carsten Nielsen <heycarsten@gmail.com>"
-  ],
-
-  "moduleFormat": [
-    "amd",
-    "cjs",
-    "globals"
-  ],
-
-  "ignore": [
-    "bower_components",
-    "node_modules",
-    "tmp",
-    "package.json",
-    "testem.json",
-    "test.js",
-    "**/.*"
-  ],
-
   "dependencies": {
-    "ember": ">=1.4 <3"
-  },
-
-  "devDependencies": {
-    "sinon": "http://sinonjs.org/releases/sinon-1.7.3.js"
+    "ember": "~2.7.0",
+    "ember-cli-shims": "0.1.1",
+    "ember-qunit-notifications": "0.1.0"
   }
 }

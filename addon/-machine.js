@@ -1,6 +1,6 @@
 import Ember from 'ember';
-import Transition from './transition';
-import Definition from './definition';
+import Transition from './-transition';
+import Definition from './-definition';
 import { capitalCamelize, contains } from './utils';
 
 const { computed, typeOf, inspect, on } = Ember;

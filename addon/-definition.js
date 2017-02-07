@@ -307,7 +307,7 @@ Definition.prototype = {
         this[name][key] = [];
         return this[name][key];
       }
-    }
+    };
 
     if (event && fromState) {
       return fetch('_transitionsByEventFromState', event + ':' + fromState);

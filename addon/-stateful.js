@@ -1,5 +1,5 @@
 import Ember from 'ember';
-import Machine from './machine';
+import Machine from './-machine';
 
 const { Mixin, computed } = Ember;
 
@@ -28,7 +28,7 @@ export default Mixin.create({
       mixin[prop] = computed.reads('__fsm__.' + prop);
     });
 
-    this._super.apply(this, arguments)
+    this._super.apply(this, arguments);
     this.reopen(mixin);
   },
 

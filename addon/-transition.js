@@ -2,7 +2,7 @@ import Ember from 'ember';
 import { withPromise, bind } from './utils';
 
 const {
-  RSVP: { Promise },
+  RSVP: { Promise, resolve, hash },
   computed,
   inspect,
   get,
@@ -70,7 +70,7 @@ export default Ember.Object.extend({
         } else {
           this.callback(cb).then(next, reject);
         }
-      }
+      };
 
       next();
     });
@@ -189,7 +189,7 @@ export default Ember.Object.extend({
 
     // Shortcut internal callbacks
     if (name[0] === '_') {
-      return RSVP.resolve(this.get('machine')[name](this));
+      return resolve(this.get('machine')[name](this));
     }
 
     callbacks = this.callbacksFor(name);
@@ -206,7 +206,7 @@ export default Ember.Object.extend({
       promises[callback.key] = promise;
     }
 
-    return RSVP.hash(promises);
+    return hash(promises);
   },
 
   toString() {

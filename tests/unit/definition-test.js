@@ -12,7 +12,7 @@ function build(transitions) {
   }).transitionsFor('run');
 }
 
-module('Unit: FSM.Definition');
+module('Unit: ember-fsm/-definition');
 
 test('Instantiation', function(assert) {
   assert.throws(function() {
@@ -80,7 +80,7 @@ test('Explicitly defined states', function(assert) {
   }, /is not used/, 'does not allow specified states to be unused');
 });
 
-module('Unit: FSM.Definition - compilation');
+module('Unit: ember-fsm/-definition - compilation');
 
 test('state callbacks', function(assert) {
   let def = create({
@@ -116,7 +116,7 @@ test('aliases "transition" to "transitions"', function(assert) {
   assert.deepEqual(def.stateNames, ['x', 'initialized']);
 });
 
-module('Unit: FSM.Definition - Unwinding transitions');
+module('Unit: ember-fsm/-definition - Unwinding transitions');
 
 test('$all macro', function(assert) {
   let def = create({
@@ -307,7 +307,7 @@ test('tracks potential entry transitions for each state', function(assert) {
   assert.strictEqual(b.enterTransitions.length, 0);
 });
 
-module('Unit: FSM.Definition - Unwound transitions');
+module('Unit: ember-fsm/-definition - Unwound transitions');
 
 test('sets array properties to be arrays', function(assert) {
   let t = build([
@@ -355,7 +355,7 @@ test('allows multiple fromStates to be specified in one transition', function(as
   assert.strictEqual(t[1].toState, 'c');
 });
 
-module('Unit: FSM.Definition - Public API');
+module('Unit: ember-fsm/-definition - Public API');
 
 let fsmDef = create({
   events: {

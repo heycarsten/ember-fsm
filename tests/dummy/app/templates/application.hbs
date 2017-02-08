@@ -1,5 +1,34 @@
-{{!-- The following component displays Ember's default welcome message. --}}
-{{welcome-page}}
-{{!-- Feel free to remove this! --}}
-
 {{outlet}}
+
+<section class="signal">
+  <ol>
+    <li class="{{if isInRed "red"}}">l</li>
+    <li class="{{if isInAmber "amber"}}">l</li>
+    <li class="{{if isInGreen "green"}}">l</li>
+  </ol>
+</section>
+
+<fieldset>
+  <legend>Control Panel</legend>
+
+  {{#unless isInOff}}
+    {{#if doPowerDown}}
+      <em>Please wait.</em>
+    {{else}}
+      <button {{action "powerDown"}}>Turn Off</button>
+    {{/if}}
+  {{else}}
+    <button {{action "powerUp"}} disabled={{isLoading}}>Turn On</button>
+  {{/unless}}
+</fieldset>
+
+<section class="log">
+  <ol>
+    {{#each model.messages as |item|}}
+      <li class="{{item.level}}">
+        <span class="level">[{{item.level}}]</span>
+        <span class="message">{{item.message}}</span>
+      </li>
+    {{/each}}
+  </ol>
+</section>

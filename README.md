@@ -3,7 +3,9 @@
 #### A promise-aware finite state machine implementation for Ember objects
 
 ```js
-var trafficSignal = Em.FSM.Machine.create({
+import FSM from 'ember-fsm';
+
+let trafficSignal = FSM.Machine.create({
   events: {
     cycle: {
       transitions: [
@@ -36,14 +38,18 @@ _A wild [traffic signal demo](http://emberjs.jsbin.com/kisuk/1) appears!_
 
 ## Getting Started
 
-The most recent builds are available in the [`dist`](/dist) directory. If you
-just want to drop `Ember.FSM` into your app and start using it, you're probably
-looking for: [`dist/globals/ember-fsm.js`](/dist/globals/ember-fsm.js).
+Install as an Ember Addon
+
+```
+ember install ember-fsm
+```
 
 ### Defining a State Machine
 
 ```js
-SleepyFSM = Ember.FSM.Machine.extend({
+import FSM from 'ember-fsm';
+
+let SleepyFSM = FSM.Machine.extend({
   // Here is where you define your state machine's state-specific configuration.
   // This section is optional.
   states: {
@@ -180,25 +186,29 @@ following boolean accessor properties for you:
 
 ### Stateful Mixin
 
-When it comes to using `Ember.FSM` in your application, you'll almost always
-want to use `Ember.FSM.Stateful` over sub-classing `Ember.FSM.Machine`. This way
+When it comes to using `ember-fsm` in your application, you'll almost always
+want to use `FSM.Stateful` over sub-classing `FSM.Machine`. This way
 you can formalize a state workflow around something like file uploads where you
 might have to incorporate three different proceesses into on user experience.
 
-Note states and events are renamed in the mixin to `fsmStates` and `fsmEvents`
+Note: States and events are renamed in the mixin to `fsmStates` and `fsmEvents`
 respectively, to avoid conflict with core Ember properties.
 
 Building these sorts of workflows implicitly as-you-code-along can be a recipie
 for massive sadness. So why be sad? Formalize that workflow! Here's an example
-of how adding `Ember.FSM.Stateful` to a controller can remove a lot of the
+of how adding `ember-fsm` to a controller can remove a lot of the
 tedious parts of workflow managment:
 
 ```js
-App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
+import Ember from 'ember';
+import FSM from 'ember-fsm';
+
+// pods/upload/controller.js
+export default Ember.Controller.extend(FSM.Stateful, {
   needs: 'notifier',
 
   actions: {
-    uploadFile: function(file) {
+    uploadFile(file) {
       this.set('file', file);
       this.sendStateEvent('addFile');
     }
@@ -232,83 +242,61 @@ App.UploadController = Em.Controller.extend(Em.FSM.Stateful, {
     }
   },
 
-  reset: function() {
+  reset() {
     this.set('file', null);
   },
 
-  checkFile: function() {
-    var file = this.get('file');
+  checkFile() {
+    let file = this.get('file');
 
     if (file.size > 0) {
       return;
     } else {
       this.get('controllers.notifier').warn('file must have content');
-      Em.FSM.reject(); // A helper for throwing an error
+      FSM.reject(); // A helper for throwing an error
     }
   },
 
-  getUploadURL: function() {
-    var controller = this;
-    var fileName = this.get('file.name');
-    var xhr;
+  getUploadURL() {
+    let fileName = this.get('file.name');
 
-    xhr = $.ajax('/api/signed_uploads', {
+    let xhr = Ember.$.ajax('/api/signed_uploads', {
       type: 'put',
       data: { file: { name: fileName } }
     });
 
-    xhr.then(function(payload) {
-      Em.run(function() {
-        controller.set('uploadToURL', payload.signed_upload.url);
+    xhr.then((payload) => {
+      Ember.run(() => {
+        this.set('uploadToURL', payload.signed_upload.url);
       });
     });
 
     return xhr; // Causes transition to block until promise is settled
   },
 
-  performUpload: function() {
-    return $.ajax(this.get('uploadToURL'), {
+  performUpload() {
+    return Ember.$.ajax(this.get('uploadToURL'), {
       type: 'put',
       data: this.get('file')
     });
   },
 
-  finishedUpload: function() {
+  finishedUpload() {
     this.get('controllers.notifier').success('Upload complete');
     this.sendStateEvent('finishUpload');
   }
 });
 ```
 
+## Running Tests
+
+* `npm test` (Runs `ember try:each` to test your addon against multiple Ember versions)
+* `ember test`
+* `ember test --server`
+
 ## Building
 
-```
-cd my/fork/of/ember-fsm
-rm -rf dist
-broccoli build dist
-```
-
-## Contributing
-
-Install Node.js and NPM, there are packages and binaries on the
-[Node.js](http://nodejs.org) website that make it easy.
-
-```sh
-cd my/fork/of/ember-fsm
-npm install -g broccoli-cli testem
-npm install
-bower install
-broccoli serve
-```
-
-Then in another session:
-
-```
-cd my/fork/of/ember-fsm
-testem
-```
-
-Then do what testem tells you to do.
+* `ember build`
 
 ## Thanks
 

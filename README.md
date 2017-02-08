@@ -1,6 +1,8 @@
 # Ember FSM
 
-#### A promise-aware finite state machine implementation for Ember objects
+#### A promise-aware finite state machine implementation for Ember
+
+[A wild (and current) traffic light demo appears!](https://ember-twiddle.com/7136a752d42aee13c1072c96480494f4)
 
 ```js
 import FSM from 'ember-fsm';

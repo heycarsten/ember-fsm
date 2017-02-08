@@ -34,8 +34,6 @@ trafficSignal.get('currentState')
 // "green"
 ```
 
-_A wild [traffic signal demo](http://emberjs.jsbin.com/kisuk/1) appears!_
-
 ## Getting Started
 
 Install as an Ember Addon
@@ -43,6 +41,10 @@ Install as an Ember Addon
 ```
 ember install ember-fsm
 ```
+
+### Do you need this?
+
+Try really hard not to need it, if you need it, I'm sorry. -- @heycarsten
 
 ### Defining a State Machine
 
@@ -63,10 +65,10 @@ let SleepyFSM = FSM.Machine.extend({
     // You can define global per-state callbacks, they will fire whenever the
     // state will be entered, was entered, will be exited, or was exited.
     sleeping: {
-      willEnter: function() { },
-      didEnter: function() { },
-      willExit: function() { },
-      didExit: function() { }
+      willEnter() { },
+      didEnter() { },
+      willExit() { },
+      didExit() { }
     }
   },
 
@@ -75,8 +77,8 @@ let SleepyFSM = FSM.Machine.extend({
     sleep: {
       // You can define global per-event callbacks. These will fire for any
       // transition before or after this event.
-      before: function() { },
-      after: function() { },
+      before() { },
+      after() { },
 
       // This is where the event's transitions are defined, it is also aliased
       // to "transition". It can accept either a single object like one in the
@@ -124,7 +126,7 @@ the list.
 Given the `SleepyFSM` example above, suppose we ran the following:
 
 ```js
-var fsm = SleepyFSM.create();
+let fsm = SleepyFSM.create();
 fsm.send('sleep');
 ```
 
@@ -161,7 +163,7 @@ transition's `resolutions` object. Likewise, rejections are stored in the
 
 ### Namespacing States
 
-`Ember.FSM` doesn't provide true sub-state support, but you can namespace your
+`ember-fsm` doesn't provide true sub-state support, but you can namespace your
 states. For example, suppose a portion of your state workflow is related in
 some way; you can prefix those states with a namespace:
 
@@ -203,7 +205,7 @@ tedious parts of workflow managment:
 import Ember from 'ember';
 import FSM from 'ember-fsm';
 
-// pods/upload/controller.js
+// controllers/upload.js
 export default Ember.Controller.extend(FSM.Stateful, {
   needs: 'notifier',
 
@@ -300,6 +302,7 @@ export default Ember.Controller.extend(FSM.Stateful, {
 
 ## Thanks
 
+- [@hhff](https://github.com/hhff) for the continued support and feedback
 - [@joliss](https://github.com/joliss) for all her hard work on [broccoli](https://github.com/joliss/broccoli)
 - [@rpflorence](https://github.com/rpflorence) for all of his work on [broccoli-dist-es6-module](https://github.com/rpflorence/broccoli-dist-es6-module)
 - [@obrie](https://github.com/obrie) for the Ruby [state_machine](https://github.com/pluginaweek/state_machine) gem, which was my first introduction to state machines

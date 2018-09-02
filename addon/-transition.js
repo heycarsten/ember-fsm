@@ -1,14 +1,9 @@
-import Ember from 'ember';
+import { not } from '@ember/object/computed';
+import { hash, resolve, Promise } from 'rsvp';
+import EmberObject, { get } from '@ember/object';
+import { typeOf } from '@ember/utils';
+import { assert, inspect } from '@ember/debug';
 import { withPromise, bind } from './utils';
-
-const {
-  RSVP: { Promise, resolve, hash },
-  computed,
-  inspect,
-  get,
-  typeOf,
-  assert
-} = Ember;
 
 const CALLBACKS = [
   'beforeEvent',
@@ -31,7 +26,7 @@ const EXT_CALLBACK_SOURCES = {
   afterEvent: 'event'
 };
 
-export default Ember.Object.extend({
+export default EmberObject.extend({
   target:      null,
   machine:     null,
   fromState:   null,
@@ -46,7 +41,7 @@ export default Ember.Object.extend({
   afterEvent:  null,
   isAborted:   null,
   isResolving: null,
-  isResolved:  computed.not('isResolving'),
+  isResolved:  not('isResolving'),
   isRejected:  null,
 
   init() {

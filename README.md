@@ -292,16 +292,18 @@ export default Ember.Controller.extend(FSM.Stateful, {
 });
 ```
 
-## Running Tests
+### Running tests
 
-* `npm test` (Runs `ember try:each` to test your addon against multiple Ember versions)
-* `ember test`
-* `ember test --server`
+* `ember test` – Runs the test suite on the current Ember version
+* `ember test --server` – Runs the test suite in "watch mode"
+* `ember try:each` – Runs the test suite against multiple Ember versions
 
-## Building
+### Running the dummy application
 
-* `ember build`
+* `ember serve`
+* Visit the dummy application at [http://localhost:4200](http://localhost:4200).
 
+<<<<<<< HEAD
 ## Thanks
 
 - [@hhff](https://github.com/hhff) for the continued support and feedback
@@ -312,3 +314,11 @@ export default Ember.Controller.extend(FSM.Stateful, {
 - My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drteeth](https://github.com/drteeth) [@minusfive](https://github.com/minusfive) for reviewing and fiddling with the stuff I make
 - [Unspace](https://unspace.ca) for understanding open source and caring about open source
 - [@ssured](https://github.com/ssured) for adding the ability to define callbacks as inline functions
+=======
+For more information on using ember-cli, visit [https://ember-cli.com/](https://ember-cli.com/).
+
+License
+------------------------------------------------------------------------------
+
+This project is licensed under the [MIT License](LICENSE.md).
+>>>>>>> 2fc527d... message

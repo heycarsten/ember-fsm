@@ -1,7 +1,5 @@
-import Ember from 'ember';
+import { copy } from 'ember-copy';
 import { ownPropertiesOf, toArray, contains } from './utils';
-
-const { copy } = Ember;
 
 export default Definition;
 
@@ -370,7 +368,7 @@ Definition.prototype = {
     let prefix;
     let i;
 
-    if (state = this._stateByName[name]) {
+    if (this._stateByName[name]) {
       return state;
     }
 

@@ -1,11 +1,7 @@
-import Ember from 'ember';
-
-const {
-  String: { capitalize, camelize },
-  RSVP: { Promise },
-  typeOf,
-  get
-} = Ember;
+import { camelize, capitalize } from '@ember/string';
+import { Promise } from 'rsvp';
+import { typeOf } from '@ember/utils';
+import { get } from '@ember/object';
 
 export function isThenable(thing) {
   let thingType = typeOf(thing);

@@ -1,16 +1,16 @@
-import Ember from 'ember';
+import { reads } from '@ember/object/computed';
+import Mixin from '@ember/object/mixin';
 import Machine from './-machine';
-
-const { Mixin, computed } = Ember;
 
 export default Mixin.create({
   fsmEvents:       null,
   fsmStates:       null,
   fsmInitialState: null,
-  fsmIsLoading:    computed.reads('__fsm__.isTransitioning'),
-  fsmCurrentState: computed.reads('__fsm__.currentState'),
+  fsmIsLoading:    reads('__fsm__.isTransitioning'),
+  fsmCurrentState: reads('__fsm__.currentState'),
 
   init() {
+    this._super(...arguments);
     let params = {};
     let mixin  = {};
     let fsm;
@@ -25,7 +25,7 @@ export default Mixin.create({
     this.set('__fsm__', fsm);
 
     fsm.isInStateAccessorProperties.forEach(function(prop) {
-      mixin[prop] = computed.reads('__fsm__.' + prop);
+      mixin[prop] = reads('__fsm__.' + prop);
     });
 
     this._super.apply(this, arguments);

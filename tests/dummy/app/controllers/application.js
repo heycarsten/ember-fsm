@@ -1,5 +1,8 @@
-import Ember from 'ember';
+import { later } from '@ember/runloop';
+import { Promise } from 'rsvp';
+import Controller from '@ember/controller';
 import FSM from 'ember-fsm';
+import { set } from '@ember/object';
 
 const WAIT_TIMES = {
   'red':   5000,
@@ -7,33 +10,40 @@ const WAIT_TIMES = {
   'green': 6500
 };
 
-export default Ember.Controller.extend(FSM.Stateful, {
-  fsmStates: {
-    initialState: 'off',
+export default Controller.extend(FSM.Stateful, {
+  fsmStates: null,
+  fsmEvents: null,
 
-    off: {
-      didEnter: ['didPowerOff', 'notifyPowerDown'],
-      willExit: 'notifyPowerUp'
-    }
-  },
+  init() {
+    set(this, 'fsmStates', {
+      initialState: 'off',
 
-  fsmEvents: {
-    cycle: {
-      after: 'colorChanged',
-
-      transitions: [
-        { off: 'red' },
-        { 'red': 'green' },
-        { 'green': 'amber' },
-        { 'amber': 'red' }
-      ]
-    },
-
-    powerDown: {
-      transition: {
-        from: ['red', 'green', 'amber'], to: 'off'
+      off: {
+        didEnter: ['didPowerOff', 'notifyPowerDown'],
+        willExit: 'notifyPowerUp'
       }
-    }
+    });
+
+    set(this, 'fsmEvents', {
+      cycle: {
+        after: 'colorChanged',
+
+        transitions: [
+          { off: 'red' },
+          { 'red': 'green' },
+          { 'green': 'amber' },
+          { 'amber': 'red' }
+        ]
+      },
+
+      powerDown: {
+        transition: {
+          from: ['red', 'green', 'amber'], to: 'off'
+        }
+      }
+    });
+
+    this._super(...arguments);
   },
 
   actions: {
@@ -81,8 +91,8 @@ export default Ember.Controller.extend(FSM.Stateful, {
   },
 
   sleep(ms) {
-    return new Ember.RSVP.Promise((resolve) => {
-      Ember.run.later(this, () => {
+    return new Promise((resolve) => {
+      later(this, () => {
         resolve();
       }, ms);
     });

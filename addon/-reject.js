@@ -1,5 +1,5 @@
-import Ember from 'ember';
+import EmberError from '@ember/error';
 
 export function reject() {
-  throw new Ember.Error('rejected transition');
+  throw new EmberError('rejected transition');
 }

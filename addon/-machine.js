@@ -1,11 +1,14 @@
-import Ember from 'ember';
+import EmberError from '@ember/error';
+import { A } from '@ember/array';
+import EmberObject, { computed } from '@ember/object';
+import { typeOf } from '@ember/utils';
+import { inspect } from '@ember/debug';
+import { on } from '@ember/object/evented';
 import Transition from './-transition';
 import Definition from './-definition';
 import { capitalCamelize, contains } from './utils';
 
-const { computed, typeOf, inspect, on } = Ember;
-
-export default Ember.Object.extend({
+export default EmberObject.extend({
   isTransitioning:   false,
   events:            null,
   states:            null,
@@ -26,11 +29,11 @@ export default Ember.Object.extend({
       events.error = { transition: { $all: 'failed' } };
     }
 
-    this.set('activeTransitions', Ember.A());
+    this.set('activeTransitions', A());
 
     this.definition = new Definition({
-      states: states,
-      events: events
+      states,
+      events
     });
 
     this.set('stateNames',   this.definition.stateNames);
@@ -46,7 +49,7 @@ export default Ember.Object.extend({
     let sameState;
 
     if (!contains(this.get('eventNames'), event)) {
-      throw new Ember.Error(
+      throw new EmberError(
         `unknown state event "${event}" try one of [` +
         this.get('eventNames').join(', ') + ']'
       );
@@ -56,7 +59,7 @@ export default Ember.Object.extend({
     sameState  = transition.toState === this.get('currentState');
 
     if (this.get('isTransitioning') && !sameState) {
-      throw new Ember.Error(
+      throw new EmberError(
         `unable to transition out of "${this.get('currentState')}" ` +
         `state to "${transition.toState}" state while transitions are ` +
         `active: ${inspect(this.get('activeTransitions'))}`
@@ -179,14 +182,14 @@ export default Ember.Object.extend({
     let transitionParams;
 
     if (!potentials.length) {
-      throw new Ember.Error(`no transition is defined for event "${event}" ` +
+      throw new EmberError(`no transition is defined for event "${event}" ` +
       `in state "${currentState}"`);
     }
 
     transitionParams = this.outcomeOfPotentialTransitions(potentials);
 
     if (!transitionParams) {
-      throw new Ember.Error('no unguarded transition was resolved for event ' +
+      throw new EmberError('no unguarded transition was resolved for event ' +
       `"${event}" in state "${currentState}"`);
     }
 

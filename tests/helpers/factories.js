@@ -1,8 +1,9 @@
+import { resolve } from 'rsvp';
+import $ from 'jquery';
 import { Machine } from 'ember-fsm';
-import Ember from 'ember';
 
 export function createMachine(params, ext) {
-  Ember.$.extend(true, params, ext);
+  $.extend(true, params, ext);
   return Machine.create(params);
 }
 
@@ -106,7 +107,7 @@ export function createCallbackMachine(opts) {
     },
 
     animateSmile() {
-      return Ember.RSVP.resolve('i am smiling so much');
+      return resolve('i am smiling so much');
     }
   }, opts);
 }

@@ -303,9 +303,9 @@ export default Ember.Controller.extend(FSM.Stateful, {
 * `ember serve`
 * Visit the dummy application at [http://localhost:4200](http://localhost:4200).
 
-<<<<<<< HEAD
 ## Thanks
 
+- [@catz](https://github.com/catz) for updating the addon to work with Ember 3.3+
 - [@hhff](https://github.com/hhff) for the continued support and feedback
 - [@joliss](https://github.com/joliss) for all her hard work on [broccoli](https://github.com/joliss/broccoli)
 - [@rpflorence](https://github.com/rpflorence) for all of his work on [broccoli-dist-es6-module](https://github.com/rpflorence/broccoli-dist-es6-module)
@@ -314,11 +314,3 @@ export default Ember.Controller.extend(FSM.Stateful, {
 - My coworkers and friends [@elucid](https://github.com/elucid) [@ghedamat](https://github.com/ghedamat) [@drteeth](https://github.com/drteeth) [@minusfive](https://github.com/minusfive) for reviewing and fiddling with the stuff I make
 - [Unspace](https://unspace.ca) for understanding open source and caring about open source
 - [@ssured](https://github.com/ssured) for adding the ability to define callbacks as inline functions
-=======
-For more information on using ember-cli, visit [https://ember-cli.com/](https://ember-cli.com/).
-
-License
-------------------------------------------------------------------------------
-
-This project is licensed under the [MIT License](LICENSE.md).
->>>>>>> 2fc527d... message

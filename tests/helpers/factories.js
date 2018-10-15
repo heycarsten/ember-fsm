@@ -1,9 +1,37 @@
 import { resolve } from 'rsvp';
-import $ from 'jquery';
+import { assign } from '@ember/polyfills';
 import { Machine } from 'ember-fsm';
 
+// https://stackoverflow.com/questions/38345937/object-assign-vs-extend
+function isObject(item) {
+  return (item && (typeof item === 'object') && !Array.isArray(item));
+}
+
+function deepMerge(target, ...sources) {
+  if (!sources.length) {
+    return target;
+  }
+
+  const source = sources.shift();
+
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) {
+          assign(target, { [key]: {} });
+        }
+        deepMerge(target[key], source[key]);
+      } else {
+        assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return deepMerge(target, ...sources);
+}
+
 export function createMachine(params, ext) {
-  $.extend(true, params, ext);
+  deepMerge(params, ext);
   return Machine.create(params);
 }
 

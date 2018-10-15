@@ -1,6 +1,6 @@
 {
   "name": "ember-fsm",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A promise-aware finite state machine implementation for Ember objects",
   "homepage": "https://github.com/heycarsten/ember-fsm",
   "bugs": {

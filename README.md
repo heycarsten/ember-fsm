@@ -4,7 +4,7 @@
 
 **Maintenance Mode**
 
-Ember FSM was a lot of fun to develop 4 years ago when this all made a lot of sense to me, it's still used in some places and I will continue to maintain it to prevent apps from braking. If you think the Ember community still needs a library like this with newer/better features please fork it and I will let people know where to go! Thanks for understanding :slightly_smiling_face:
+Ember FSM was a lot of fun to develop 4 years ago when this all made a lot of sense to me, it's still used in some places and I will continue to maintain it to prevent apps from breaking. If you think the Ember community still needs a library like this with newer/better features please fork it and I will let people know where to go! Thanks for understanding :slightly_smiling_face:
 
 :warning: :warning: :warning:
 
